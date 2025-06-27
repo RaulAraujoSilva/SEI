@@ -25,6 +25,7 @@ import {
   Settings as ConfiguracoesIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
+import SearchBar from '../SearchBar';
 
 const DRAWER_WIDTH = 240;
 
@@ -101,10 +102,49 @@ const Layout: React.FC = () => {
             <MenuIcon />
           </IconButton>
           
-          <Typography variant="h6" noWrap component="div">
+          <Typography 
+            variant="h6" 
+            noWrap 
+            component="div"
+            sx={{ flexGrow: { xs: 1, sm: 0 }, mr: { sm: 2 } }}
+          >
             Sistema de Análise Inteligente
           </Typography>
+
+          {/* Barra de Busca - Desktop */}
+          <Box 
+            sx={{ 
+              flexGrow: 1, 
+              maxWidth: 400, 
+              display: { xs: 'none', sm: 'block' },
+              mx: 2 
+            }}
+          >
+            <SearchBar 
+              size="small" 
+              placeholder="Buscar processos, documentos..."
+              fullWidth
+            />
+          </Box>
+
+          {/* Espaço flexível para empurrar elementos para a direita */}
+          <Box sx={{ flexGrow: 1 }} />
         </Toolbar>
+
+        {/* Barra de Busca - Mobile (abaixo do toolbar principal) */}
+        <Box 
+          sx={{ 
+            display: { xs: 'block', sm: 'none' },
+            px: 2, 
+            pb: 1 
+          }}
+        >
+          <SearchBar 
+            size="small" 
+            placeholder="Buscar..."
+            fullWidth
+          />
+        </Box>
       </AppBar>
 
       {/* Drawer */}
@@ -154,9 +194,13 @@ const Layout: React.FC = () => {
           flexGrow: 1,
           p: 3,
           width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
+          // Adiciona espaço extra no mobile devido à SearchBar
+          mt: { xs: 1, sm: 0 },
         }}
       >
         <Toolbar />
+        {/* Espaço adicional no mobile para a SearchBar */}
+        <Box sx={{ display: { xs: 'block', sm: 'none' }, height: 16 }} />
         <Outlet />
       </Box>
     </Box>

@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Box } from '@mui/material';
 import Layout from './components/Layout';
+import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import ProcessosList from './pages/ProcessosList';
 import ProcessoDetails from './pages/ProcessoDetails';
@@ -17,8 +18,8 @@ const App: React.FC = () => {
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
       <Routes>
         <Route path="/" element={<Layout />}>
-          {/* Rota padrão redireciona para dashboard */}
-          <Route index element={<Navigate to="/dashboard" replace />} />
+          {/* Rota padrão carrega a Home */}
+          <Route index element={<Home />} />
           
           {/* Dashboard */}
           <Route path="dashboard" element={<Dashboard />} />
