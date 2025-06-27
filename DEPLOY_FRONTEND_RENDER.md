@@ -156,8 +156,8 @@ services:
    - Agora: mode dinâmico via argv.mode
 
 2. Template Path:
-   - Antes: path.resolve(__dirname, 'public', 'index.html')  
-   - Agora: './public/index.html' (simplificado)
+   - Antes: './public/index.html' (path relativo problemático)
+   - Agora: path.join(__dirname, 'public', 'index.html') (path absoluto)
 
 3. DefinePlugin:
    - Antes: 'process.env': { ... } (causava conflitos)
@@ -170,6 +170,7 @@ services:
    - Filename com hash em produção: bundle.[contenthash].js
 
 ✅ Build testado: 893KB bundle gerado com sucesso
+✅ Template HTML: Resolvido definitivamente
 ```
 
 ### **Problema: Build Failed**
