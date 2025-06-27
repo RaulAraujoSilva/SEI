@@ -15,37 +15,73 @@ class DatabaseConfig:
     """Configuração do banco de dados"""
     
     def __init__(self):
-        # Se estivermos em ambiente de teste, usar SQLite
+        # Obter URL do banco de dados
+        self.database_url = os.getenv("DATABASE_URL", "sqlite:///./sei_scraper.db")
+        
+        # Se estivermos em ambiente de teste, sempre usar SQLite em memória
         if os.getenv("ENVIRONMENT") == "test":
             self.database_url = "sqlite:///:memory:"
             self.test_database_url = "sqlite:///:memory:"
         else:
-            self.database_url = os.getenv("DATABASE_URL", "postgresql://sei_user:sei_password@localhost:5432/sei_scraper")
-            self.test_database_url = os.getenv("TEST_DATABASE_URL", "postgresql://sei_user:sei_password@localhost:5432/sei_scraper_test")
+            self.test_database_url = "sqlite:///:memory:"
         
+        # Configurações de debug
         self.echo = os.getenv("DB_ECHO", "false").lower() == "true"
-
+        
     def get_engine(self, test: bool = False):
-        """Cria engine do SQLAlchemy"""
+        """Cria engine do SQLAlchemy com fallback para SQLite"""
         url = self.test_database_url if test else self.database_url
         
+        # Se URL começa com postgres mas não temos psycopg2, usar SQLite
+        if url.startswith(("postgresql://", "postgres://")):
+            try:
+                import psycopg2
+                # Converter postgresql:// para postgresql+psycopg2://
+                if url.startswith("postgresql://"):
+                    url = url.replace("postgresql://", "postgresql+psycopg2://", 1)
+                elif url.startswith("postgres://"):
+                    url = url.replace("postgres://", "postgresql+psycopg2://", 1)
+                
+                # Tentar criar engine PostgreSQL
+                engine = create_engine(
+                    url,
+                    echo=self.echo,
+                    pool_size=10,
+                    max_overflow=20,
+                    pool_pre_ping=True,
+                    pool_recycle=300
+                )
+                
+                # Testar conexão
+                with engine.connect() as conn:
+                    pass
+                
+                print(f"✅ Conectado ao PostgreSQL: {url[:30]}...")
+                return engine
+                
+            except (ImportError, Exception) as e:
+                print(f"⚠️ PostgreSQL não disponível ({e}), usando SQLite como fallback")
+                url = "sqlite:///./sei_scraper.db"
+        
+        # Configuração para SQLite (desenvolvimento/fallback)
         if url.startswith("sqlite"):
-            # Configuração especial para SQLite (testes)
-            return create_engine(
+            engine = create_engine(
                 url,
                 echo=self.echo,
                 poolclass=StaticPool,
                 connect_args={"check_same_thread": False}
             )
-        else:
-            # PostgreSQL
-            return create_engine(
-                url,
-                echo=self.echo,
-                pool_size=10,
-                max_overflow=20,
-                pool_pre_ping=True
-            )
+            print(f"✅ Conectado ao SQLite: {url}")
+            return engine
+        
+        # Fallback final para SQLite
+        print("⚠️ Configuração de banco inválida, usando SQLite como fallback final")
+        return create_engine(
+            "sqlite:///./sei_scraper.db",
+            echo=self.echo,
+            poolclass=StaticPool,
+            connect_args={"check_same_thread": False}
+        )
 
     def get_session_local(self, test: bool = False):
         """Cria SessionLocal"""
@@ -67,7 +103,7 @@ else:
 TestSessionLocal = db_config.get_session_local(test=True)
 
 def get_db() -> Generator:
-    """Dependency para obter sessão do banco"""
+    """Dependency para obter sessão de banco"""
     db = SessionLocal()
     try:
         yield db
@@ -84,8 +120,15 @@ def get_test_db() -> Generator:
 
 def create_tables(test: bool = False):
     """Cria todas as tabelas"""
-    engine = db_config.get_engine(test=test)
-    Base.metadata.create_all(bind=engine)
+    try:
+        engine = db_config.get_engine(test=test)
+        Base.metadata.create_all(bind=engine)
+        print("✅ Tabelas criadas com sucesso")
+    except Exception as e:
+        print(f"⚠️ Erro ao criar tabelas: {e}")
+        # Em produção, continua mesmo com erro de banco
+        if os.getenv("ENVIRONMENT") != "production":
+            raise e
 
 def drop_tables(test: bool = False):
     """Drop todas as tabelas"""

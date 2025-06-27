@@ -1,4 +1,4 @@
-# 🚀 Deploy SEI-Com AI no Render.com
+# 🚀 Deploy no Render.com - SEI-Com AI
 
 ## 📋 Visão Geral
 
@@ -36,9 +36,9 @@ Este guia fornece instruções para fazer deploy do SEI-Com AI no Render.com usa
 6. **Deploy automático!** ✅
 
 ### URLs de Acesso:
-- **API:** `https://sei-com-ai.onrender.com`
-- **Docs:** `https://sei-com-ai.onrender.com/docs`
-- **Health:** `https://sei-com-ai.onrender.com/health`
+- **API:** `https://sei-jxdn.onrender.com`
+- **Docs:** `https://sei-jxdn.onrender.com/docs`
+- **Health:** `https://sei-jxdn.onrender.com/health`
 
 ## 🏗️ Deploy Completo (Opção 2 - Multi-Serviços)
 
@@ -68,8 +68,8 @@ Health Check Path: /health
 ```
 ENVIRONMENT=production
 DEBUG=false
-DATABASE_URL=postgresql://[render-fornece]
-CORS_ORIGINS=https://[your-frontend].onrender.com
+DATABASE_URL=sqlite:///./sei_scraper.db  # Fallback SQLite
+CORS_ORIGINS=https://sei-jxdn.onrender.com
 ```
 
 #### **Frontend (Opcional):**
@@ -96,7 +96,7 @@ DATABASE_URL=sqlite:///./sei_scraper.db  # Simples
 DATABASE_URL=postgresql://[render-db-url]  # Avançado
 
 # CORS (ajuste seu domínio)
-CORS_ORIGINS=https://seu-frontend.onrender.com
+CORS_ORIGINS=https://sei-jxdn.onrender.com
 
 # Opcional - LLM
 OPENAI_API_KEY=sk-your-key-here
@@ -105,7 +105,7 @@ DEFAULT_LLM_MODEL=gpt-3.5-turbo
 
 ### 2. **URLs Típicas do Render**
 ```
-Backend:  https://sei-com-ai.onrender.com
+Backend:  https://sei-jxdn.onrender.com
 Frontend: https://sei-com-ai-frontend.onrender.com
 ```
 
@@ -160,13 +160,13 @@ Frontend: https://sei-com-ai-frontend.onrender.com
 ### **URLs de Teste:**
 ```bash
 # API Status
-curl https://seu-app.onrender.com/health
+curl https://sei-jxdn.onrender.com/health
 
 # API Docs
-https://seu-app.onrender.com/docs
+https://sei-jxdn.onrender.com/docs
 
 # Processos (exemplo)
-https://seu-app.onrender.com/api/v1/processos
+https://sei-jxdn.onrender.com/api/v1/processos
 ```
 
 ## 🎯 Otimizações Render
@@ -245,7 +245,147 @@ Após seguir este guia:
 
 ### **URLs Finais:**
 ```
-🌐 API: https://[seu-app].onrender.com
-📚 Docs: https://[seu-app].onrender.com/docs
-💚 Health: https://[seu-app].onrender.com/health
-``` 
+🌐 API: https://sei-jxdn.onrender.com
+�� Docs: https://sei-jxdn.onrender.com/docs
+💚 Health: https://sei-jxdn.onrender.com/health
+```
+
+## ✅ **CONFIGURAÇÃO COMPLETA DO DEPLOY**
+
+### 🔗 **URLs do Projeto**
+- **API:** https://sei-jxdn.onrender.com
+- **Docs:** https://sei-jxdn.onrender.com/docs
+- **Health:** https://sei-jxdn.onrender.com/health
+
+### 📝 **Status:** ✅ **PRONTO PARA DEPLOY**
+
+## 🛠️ **Instruções de Deploy**
+
+### 1. **Conectar Repositório**
+```bash
+# No painel do Render.com:
+1. New Web Service
+2. Connect GitHub: seu-usuario/SEI-Com-AI
+3. Name: sei-com-ai-backend  
+4. Environment: Python
+5. Build Command: pip install -r backend/requirements.txt
+6. Start Command: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+```
+
+### 2. **⚠️ CONFIGURAR VARIÁVEIS DE AMBIENTE MANUALMENTE**
+
+**No painel do Render.com → Environment Variables:**
+
+```bash
+# 🔐 OpenAI Configuration (OBRIGATÓRIO)
+OPENAI_API_KEY=sua-chave-openai-aqui
+OPENAI_ORGANIZATION_ID=org-your-organization-id-here
+
+# 🔒 Security (opcional)
+SECRET_KEY=sei-com-ai-super-secret-key-production-2025-render-deploy-secure
+
+# 🌐 CORS (opcional - já configurado no render.yaml)
+CORS_ORIGINS=https://sei-jxdn.onrender.com,https://seu-frontend.com
+```
+
+### 3. **Database - SQLite Fallback**
+O sistema está configurado para usar **SQLite como fallback** automaticamente.
+- ✅ **Não precisa criar banco PostgreSQL**
+- ✅ **Funciona imediatamente com SQLite**
+- ✅ **Fallback automático em caso de erro**
+
+### 4. **Deploy Automático**
+O `render.yaml` está configurado para deploy automático.
+
+## 🔧 **Configuração render.yaml**
+
+```yaml
+services:
+  - type: web
+    name: sei-com-ai-backend
+    env: python
+    plan: free
+    buildCommand: "pip install -r backend/requirements.txt"
+    startCommand: "cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        value: sqlite:///./sei_scraper.db  # Fallback SQLite
+      - key: CORS_ORIGINS
+        value: "https://sei-jxdn.onrender.com"
+      - key: DEFAULT_LLM_MODEL
+        value: gpt-4.1-mini-2025-04-14
+```
+
+## 🔐 **Segurança**
+
+### ✅ **Boas Práticas Implementadas**
+1. **Chaves OpenAI** protegidas (não commitadas no código)
+2. **SQLite fallback** automático (sem dependência PostgreSQL)
+3. **Environment** específico para produção
+4. **CORS** configurado para URL real
+
+### ⚠️ **Configurações Obrigatórias**
+- `OPENAI_API_KEY` - **DEVE ser configurada manualmente**
+- `OPENAI_ORGANIZATION_ID` - **DEVE ser configurada manualmente**
+
+## 🧪 **Testes**
+
+### Endpoints de Teste:
+```bash
+# Health Check
+curl https://sei-jxdn.onrender.com/health
+
+# API Docs
+https://sei-jxdn.onrender.com/docs
+
+# Configuração LLM
+curl https://sei-jxdn.onrender.com/api/v1/llm/config
+
+# Estatísticas LLM
+curl https://sei-jxdn.onrender.com/api/v1/llm/statistics
+```
+
+## 🔄 **Auto-Deploy**
+
+Configurado para deploy automático a cada push na branch `main`:
+- ✅ Build automático
+- ✅ Variáveis de ambiente preservadas
+- ✅ SQLite funciona imediatamente
+- ✅ Health checks configurados
+
+## 📊 **Monitoramento**
+
+### Logs de Deploy:
+```bash
+# Ver logs no painel do Render
+https://dashboard.render.com/
+```
+
+### Verificação de Funcionamento:
+1. **API Health:** ✅ `/health`
+2. **Database:** ✅ SQLite (fallback automático)
+3. **OpenAI:** ⚠️ Configurar chaves manualmente
+4. **CORS:** ✅ Configurado para produção
+
+## 🆘 **Solução de Problemas**
+
+### Erro: "OPENAI_API_KEY não configurada"
+1. Acesse painel do Render
+2. Environment Variables
+3. Adicione `OPENAI_API_KEY` com sua chave
+
+### Erro: Database Connection
+- ✅ **Não deve acontecer** - SQLite fallback automático
+- Se acontecer, verifique logs para detalhes
+
+### Erro: Application Startup Failed
+1. Verifique environment variables obrigatórias
+2. Confirme que health check responde
+3. Consulte logs detalhados no painel
+
+---
+
+**Status:** ✅ **DEPLOY CONFIGURADO COM FALLBACK SEGURO** - Configure as chaves OpenAI e deploy! 
