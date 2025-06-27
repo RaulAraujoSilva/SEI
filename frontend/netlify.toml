@@ -1,0 +1,18 @@
+[build]
+  publish = "build"
+  command = "npm run build"
+
+[build.environment]
+  REACT_APP_API_URL = "https://sei-jxdn.onrender.com/api/v1"
+  NODE_VERSION = "18"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[context.production.environment]
+  REACT_APP_API_URL = "https://sei-jxdn.onrender.com/api/v1"
+
+[context.deploy-preview.environment]
+  REACT_APP_API_URL = "https://sei-jxdn.onrender.com/api/v1" 
