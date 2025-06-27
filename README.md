@@ -168,6 +168,35 @@ SEI-Com AI/
 - `GET /api/v1/health` - Health check
 - `GET /api/v1/dashboard` - Dados dashboard
 
+## 🌐 Deploy em Produção (Render.com)
+
+### ⚡ **Deploy Rápido - 1 Clique**
+
+1. **Acesse** [Render.com](https://render.com) e faça login
+2. **Clique** "New +" → "Web Service"  
+3. **Conecte** este repositório: `https://github.com/RaulAraujoSilva/SEI`
+4. **Configure:**
+   - Name: `sei-com-ai`
+   - Environment: **Docker**
+   - Plan: **Free**
+5. **Variáveis de Ambiente:**
+   ```
+   ENVIRONMENT=production
+   DATABASE_URL=sqlite:///./sei_scraper.db
+   DEBUG=false
+   CORS_ORIGINS=*
+   ```
+6. **✅ Deploy Automático!**
+
+### 🔗 **URLs de Acesso:**
+- **🌐 API:** `https://sei-com-ai.onrender.com`
+- **📚 Docs:** `https://sei-com-ai.onrender.com/docs`
+- **💚 Health:** `https://sei-com-ai.onrender.com/health`
+
+📚 **Guia Completo:** [DEPLOY_RENDER.md](./DEPLOY_RENDER.md)
+
+---
+
 ## 📱 Como Usar
 
 ### 1. **Acesse a Home**

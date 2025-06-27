@@ -1,0 +1,48 @@
+services:
+  # Backend API - SEI-Com AI
+  - type: web
+    name: sei-com-ai-backend
+    env: python
+    plan: free
+    buildCommand: "pip install -r backend/requirements.txt"
+    startCommand: "cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sei-com-ai-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: sei-com-ai-redis
+          property: connectionString
+      - key: DEBUG
+        value: "false"
+      - key: CORS_ORIGINS
+        value: "https://sei-com-ai-frontend.onrender.com,https://sei-com-ai.onrender.com"
+
+  # Frontend React App
+  - type: web
+    name: sei-com-ai-frontend
+    env: static
+    plan: free
+    buildCommand: "cd frontend && npm install && npm run build"
+    staticPublishPath: frontend/build
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+  # PostgreSQL Database
+databases:
+  - name: sei-com-ai-db
+    databaseName: sei_scraper
+    user: sei_user
+    plan: free
+
+  # Redis Cache
+  - name: sei-com-ai-redis
+    plan: free 
