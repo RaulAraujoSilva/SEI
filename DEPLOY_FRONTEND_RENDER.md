@@ -147,6 +147,31 @@ services:
 
 ## 🐛 **TROUBLESHOOTING**
 
+### **✅ CORREÇÕES APLICADAS (27/06/2025)**
+```bash
+🛠️ Problemas resolvidos na configuração:
+
+1. Webpack Mode: 
+   - Antes: mode: 'development' (hardcoded)
+   - Agora: mode dinâmico via argv.mode
+
+2. Template Path:
+   - Antes: path.resolve(__dirname, 'public', 'index.html')  
+   - Agora: './public/index.html' (simplificado)
+
+3. DefinePlugin:
+   - Antes: 'process.env': { ... } (causava conflitos)
+   - Agora: variáveis individuais sem conflitos
+
+4. Cross-env:
+   - Adicionado para compatibilidade Windows/Linux
+
+5. Cache Busting:
+   - Filename com hash em produção: bundle.[contenthash].js
+
+✅ Build testado: 893KB bundle gerado com sucesso
+```
+
 ### **Problema: Build Failed**
 ```bash
 ✅ Solução:
