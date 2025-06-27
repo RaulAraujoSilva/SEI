@@ -1,0 +1,17 @@
+services:
+  - type: static_site
+    name: sei-com-ai-frontend
+    staticPublishPath: ./build
+    buildCommand: npm run build
+    pullRequestPreviewsEnabled: true
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: REACT_APP_API_URL
+        value: https://sei-jxdn.onrender.com/api/v1
+      - key: REACT_APP_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "18" 

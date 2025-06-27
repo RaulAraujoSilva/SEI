@@ -6,6 +6,7 @@
   "scripts": {
     "start": "webpack serve --mode development --open",
     "build": "webpack --mode production",
+    "build:render": "REACT_APP_API_URL=https://sei-jxdn.onrender.com/api/v1 webpack --mode production",
     "test": "jest",
     "test:watch": "jest --watch",
     "lint": "eslint src --ext .ts,.tsx",
