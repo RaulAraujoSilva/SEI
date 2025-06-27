@@ -6,9 +6,10 @@ module.exports = {
   mode: 'development',
   entry: './src/index.tsx',
   output: {
-    path: path.resolve(__dirname, 'build'),
+    path: path.resolve(__dirname, 'dist'),
     filename: 'bundle.js',
     publicPath: '/',
+    clean: true,
   },
   module: {
     rules: [
@@ -33,8 +34,9 @@ module.exports = {
   },
   plugins: [
     new HtmlWebpackPlugin({
-      template: './public/index.html',
+      template: path.resolve(__dirname, 'public', 'index.html'),
       title: 'SEI-Com AI',
+      filename: 'index.html',
     }),
     new webpack.DefinePlugin({
       'process.env': {

@@ -29,8 +29,8 @@
 Name: sei-com-ai-frontend
 Branch: main
 Root Directory: frontend
-Build Command: npm run build
-Publish Directory: build
+Build Command: npm run build:render
+Publish Directory: dist
 Auto-Deploy: Yes
 ```
 
@@ -76,8 +76,8 @@ Action: Rewrite
 📝 Name: sei-com-ai-frontend
 🌿 Branch: main
 📂 Root Directory: frontend
-🔨 Build Command: npm run build
-📤 Publish Directory: build
+🔨 Build Command: npm run build:render
+📤 Publish Directory: dist
 ```
 
 ### **Tela 4: Environment Variables**
@@ -129,8 +129,8 @@ graph TB
 services:
   - type: static_site
     name: sei-com-ai-frontend
-    staticPublishPath: ./build
-    buildCommand: npm run build
+    staticPublishPath: ./dist
+    buildCommand: npm run build:render
     envVars:
       - key: REACT_APP_API_URL
         value: https://sei-jxdn.onrender.com/api/v1
