@@ -203,7 +203,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
                           {processo.numero}
                         </Typography>
                         <Typography variant="caption" color="text.secondary" noWrap>
-                          {processo.assunto}
+                          {processo.tipo}
                         </Typography>
                       </Box>
                       <Chip
@@ -242,7 +242,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
                       <DocumentIcon fontSize="small" color="secondary" />
                       <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                         <Typography variant="body2" noWrap>
-                          {documento.nome}
+                          {documento.numero_documento}
                         </Typography>
                         <Typography variant="caption" color="text.secondary" noWrap>
                           {documento.tipo}

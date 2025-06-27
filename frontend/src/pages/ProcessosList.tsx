@@ -3,333 +3,352 @@ import {
   Box,
   Typography,
   Grid,
+  Card,
+  CardContent,
   Button,
   TextField,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
+  Chip,
   Pagination,
-  Paper,
-  IconButton,
-  Tooltip,
   Alert,
+  CircularProgress,
+  Skeleton,
 } from '@mui/material';
-import {
-  Add as AddIcon,
-  Search as SearchIcon,
-  FilterList as FilterIcon,
-  ViewList as ListIcon,
-  ViewModule as GridIcon,
-} from '@mui/icons-material';
+import { Add, Search, FilterList } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { ProcessCard } from '../components';
-import { Processo } from '../types';
+import { useProcessos } from '../hooks/useApi';
+import { ProcessoFilters } from '../types';
 
 const ProcessosList: React.FC = () => {
   const navigate = useNavigate();
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [filters, setFilters] = useState({
-    page: 1,
-    size: 12,
+  
+  // ============================================================================
+  // ESTADOS DE FILTRO E PAGINAÇÃO
+  // ============================================================================
+  const [page, setPage] = useState(1);
+  const [filtros, setFiltros] = useState<ProcessoFilters>({
     numero: '',
     tipo: '',
     interessados: '',
+    size: 12,
+    page: 1,
   });
 
-  // Dados mock - AJUSTADOS PARA ESPECIFICAÇÃO SEI
-  const processosMock: Processo[] = [
-    {
-      id: 1,
-      numero: 'SEI-070002/013015/2024',
-      tipo: 'Administrativo: Elaboração de Correspondência',
-      data_geracao: '2024-07-16',
-      interessados: 'Secretaria de Estado de Fazenda - SEFAZ/RJ',
-      url_processo: 'https://sei.rj.gov.br/sei/controlador.php?acao=protocolo_visualizar&id_protocolo=070002013015',
-      observacao_usuario: 'Processo prioritário para análise',
-      created_at: '2024-01-15T10:30:00Z',
-      updated_at: '2024-01-27T09:15:00Z',
-      total_documentos: 12,
-      documentos_analisados: 8,
-      custo_total_llm: 15.45,
-      localizacao_atual: 'SEFAZ/COGET - Coordenação de Gestão Tecnológica',
-    },
-    {
-      id: 2,
-      numero: 'SEI-040001/008732/2024',
-      tipo: 'Processo Administrativo Disciplinar',
-      data_geracao: '2024-05-20',
-      interessados: 'Corregedoria Geral do Estado - CGE/RJ',
-      url_processo: 'https://sei.rj.gov.br/sei/controlador.php?acao=protocolo_visualizar&id_protocolo=040001008732',
-      created_at: '2024-01-10T14:20:00Z',
-      updated_at: '2024-01-25T16:30:00Z',
-      total_documentos: 23,
-      documentos_analisados: 23,
-      custo_total_llm: 34.20,
-      localizacao_atual: 'CGE/CORREGEDORIA - Concluído',
-    },
-    {
-      id: 3,
-      numero: 'SEI-120005/025678/2024',
-      tipo: 'Licitação: Pregão Eletrônico',
-      data_geracao: '2024-08-10',
-      interessados: 'Secretaria de Planejamento e Gestão - SEPLAG/RJ',
-      url_processo: 'https://sei.rj.gov.br/sei/controlador.php?acao=protocolo_visualizar&id_protocolo=120005025678',
-      observacao_usuario: 'Contratação de consultoria em gestão',
-      created_at: '2024-01-20T08:45:00Z',
-      updated_at: '2024-01-27T11:20:00Z',
-      total_documentos: 7,
-      documentos_analisados: 5,
-      custo_total_llm: 8.90,
-      localizacao_atual: 'SEPLAG/CPL - Comissão Permanente de Licitação',
-    },
-    {
-      id: 4,
-      numero: 'SEI-030002/011456/2024',
-      tipo: 'Análise Legislativa: Projeto de Lei',
-      data_geracao: '2024-06-12',
-      interessados: 'Assembleia Legislativa do Estado do Rio de Janeiro - ALERJ',
-      url_processo: 'https://sei.rj.gov.br/sei/controlador.php?acao=protocolo_visualizar&id_protocolo=030002011456',
-      created_at: '2024-01-12T15:10:00Z',
-      updated_at: '2024-01-24T13:45:00Z',
-      total_documentos: 18,
-      documentos_analisados: 12,
-      custo_total_llm: 22.15,
-      localizacao_atual: 'ALERJ/COMISSÃO - Em análise técnica',
-    },
-    {
-      id: 5,
-      numero: 'SEI-080003/017890/2024',
-      tipo: 'Revisão Contratual',
-      data_geracao: '2024-09-25',
-      interessados: 'Procuradoria Geral do Estado - PGE/RJ',
-      url_processo: 'https://sei.rj.gov.br/sei/controlador.php?acao=protocolo_visualizar&id_protocolo=080003017890',
-      observacao_usuario: 'Contratos de terceirização prioritários',
-      created_at: '2024-01-25T09:30:00Z',
-      updated_at: '2024-01-27T10:15:00Z',
-      total_documentos: 15,
-      documentos_analisados: 3,
-      custo_total_llm: 4.25,
-      localizacao_atual: 'PGE/PROCURADORIA - Em tramitação',
-    },
-    {
-      id: 6,
-      numero: 'SEI-050001/012345/2024',
-      tipo: 'Ação de Improbidade Administrativa',
-      data_geracao: '2024-04-08',
-      interessados: 'Ministério Público do Estado do Rio de Janeiro - MPRJ',
-      url_processo: 'https://sei.rj.gov.br/sei/controlador.php?acao=protocolo_visualizar&id_protocolo=050001012345',
-      created_at: '2024-01-08T11:20:00Z',
-      updated_at: '2024-01-26T14:30:00Z',
-      total_documentos: 31,
-      documentos_analisados: 31,
-      custo_total_llm: 47.80,
-      localizacao_atual: 'MPRJ/PROMOTORIA - Processo arquivado',
-    },
-  ];
+  // ============================================================================
+  // DADOS REAIS DA API (substituindo mock)
+  // ============================================================================
+  const { data: processosData, isLoading, error } = useProcessos({
+    ...filtros,
+    page: page,
+  });
 
-  const handleFilterChange = (field: string, value: any) => {
-    setFilters(prev => ({
-      ...prev,
-      [field]: value,
-      page: 1, // Reset page when filtering
-    }));
+  // ============================================================================
+  // HANDLERS
+  // ============================================================================
+  const handleSearch = (value: string) => {
+    setFiltros(prev => ({ ...prev, numero: value }));
+    setPage(1); // Reset para primeira página
   };
 
-  const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
-    setFilters(prev => ({ ...prev, page: value }));
+  const handleFilterChange = (field: keyof ProcessoFilters, value: string) => {
+    setFiltros(prev => ({ ...prev, [field]: value }));
+    setPage(1);
   };
 
-  const handleView = (id: number) => {
+  const handlePageChange = (_: React.ChangeEvent<unknown>, newPage: number) => {
+    setPage(newPage);
+  };
+
+  const visualizarProcesso = (id: number) => {
     navigate(`/processos/${id}`);
   };
 
-  const handleEdit = (id: number) => {
-    navigate(`/processos/${id}/edit`);
+  const novoProcesso = () => {
+    navigate('/processos/novo');
   };
 
-  const handleDelete = async (id: number) => {
-    if (window.confirm('Tem certeza que deseja excluir este processo?')) {
-      alert(`Processo ${id} seria excluído (funcionalidade demo)`);
-    }
-  };
+  // ============================================================================
+  // DADOS PROCESSADOS
+  // ============================================================================
+  const processos = processosData?.items || [];
+  const totalProcessos = processosData?.total || 0;
+  const totalPages = Math.ceil(totalProcessos / (filtros.size || 12));
 
-  const handleAnalyze = (id: number) => {
-    alert(`Análise do processo ${id} seria iniciada (funcionalidade demo)`);
-  };
+  // ============================================================================
+  // LOADING STATE
+  // ============================================================================
+  if (isLoading) {
+    return (
+      <Box>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+          <Typography variant="h4">Processos</Typography>
+          <Button variant="contained" startIcon={<Add />} onClick={novoProcesso}>
+            Novo Processo
+          </Button>
+        </Box>
 
-  const clearFilters = () => {
-    setFilters({
-      page: 1,
-      size: 12,
-      numero: '',
-      tipo: '',
-      interessados: '',
-    });
-  };
+        <Alert severity="info" sx={{ mb: 3 }}>
+          <CircularProgress size={20} sx={{ mr: 1 }} />
+          Carregando processos da API...
+        </Alert>
 
-  // Filtrar processos baseado nos filtros
-  const processosFiltrados = processosMock.filter(processo => {
-    if (filters.numero && !processo.numero.toLowerCase().includes(filters.numero.toLowerCase())) {
-      return false;
-    }
-    if (filters.tipo && !processo.tipo.toLowerCase().includes(filters.tipo.toLowerCase())) {
-      return false;
-    }
-    if (filters.interessados && !processo.interessados.toLowerCase().includes(filters.interessados.toLowerCase())) {
-      return false;
-    }
-    return true;
-  });
+        {/* Skeleton para filtros */}
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          <Grid item xs={12} md={6}>
+            <Skeleton variant="rectangular" height={56} />
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <Skeleton variant="rectangular" height={56} />
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <Skeleton variant="rectangular" height={56} />
+          </Grid>
+        </Grid>
 
-  const totalPages = Math.ceil(processosFiltrados.length / filters.size);
-  const startIndex = (filters.page - 1) * filters.size;
-  const processosPage = processosFiltrados.slice(startIndex, startIndex + filters.size);
+        {/* Skeleton para cards */}
+        <Grid container spacing={2}>
+          {[1, 2, 3, 4, 5, 6].map((index) => (
+            <Grid item xs={12} sm={6} md={4} key={index}>
+              <Card>
+                <CardContent>
+                  <Skeleton variant="text" width="60%" height={24} />
+                  <Skeleton variant="text" width="100%" height={20} />
+                  <Skeleton variant="text" width="80%" height={20} />
+                  <Skeleton variant="rectangular" height={32} sx={{ mt: 2 }} />
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      </Box>
+    );
+  }
+
+  // ============================================================================
+  // ERROR STATE
+  // ============================================================================
+  if (error) {
+    return (
+      <Box>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+          <Typography variant="h4">Processos</Typography>
+          <Button variant="contained" startIcon={<Add />} onClick={novoProcesso}>
+            Novo Processo
+          </Button>
+        </Box>
+
+        <Alert severity="error" sx={{ mb: 3 }}>
+          <strong>Erro ao carregar processos:</strong> {error.message || 'Erro desconhecido'}
+          <br />
+          <Typography variant="body2" sx={{ mt: 1 }}>
+            Verifique se o backend está rodando em http://localhost:8000
+          </Typography>
+        </Alert>
+      </Box>
+    );
+  }
 
   return (
     <Box>
       {/* Header */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">
-          Lista de Processos
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => navigate('/novo-processo')}
+        <Typography variant="h4">Processos</Typography>
+        <Button 
+          variant="contained" 
+          startIcon={<Add />} 
+          onClick={novoProcesso}
+          sx={{ minWidth: 150 }}
         >
           Novo Processo
         </Button>
       </Box>
 
-      <Alert severity="info" sx={{ mb: 3 }}>
-        <strong>Modo Demonstração:</strong> Esta lista mostra {processosMock.length} processos simulados. 
-        Os filtros e componentes visuais estão funcionais. Teste os cards, filtros e navegação.
+      {/* Status da API */}
+      <Alert severity={processos.length > 0 ? 'success' : 'info'} sx={{ mb: 3 }}>
+        {processos.length > 0 ? (
+          <>
+            <strong>✅ {totalProcessos} processos</strong> carregados da API. 
+            {filtros.numero && (
+              <span> Filtrados por: "{filtros.numero}"</span>
+            )}
+          </>
+        ) : (
+          <>
+            <strong>📋 Nenhum processo encontrado.</strong> 
+            Use o botão "Novo Processo" para adicionar processos do SEI-RJ.
+          </>
+        )}
       </Alert>
 
       {/* Filtros */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={6} md={3}>
-            <TextField
-              fullWidth
-              size="small"
-              label="Número do Processo"
-              value={filters.numero}
-              onChange={(e) => handleFilterChange('numero', e.target.value)}
-              InputProps={{
-                endAdornment: <SearchIcon color="action" />,
-              }}
-            />
-          </Grid>
-
-          <Grid item xs={12} sm={6} md={3}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Tipo</InputLabel>
-              <Select
-                value={filters.tipo}
-                label="Tipo"
-                onChange={(e) => handleFilterChange('tipo', e.target.value)}
-              >
-                <MenuItem value="">Todos</MenuItem>
-                <MenuItem value="Administrativo">Administrativo</MenuItem>
-                <MenuItem value="Processo Administrativo Disciplinar">PAD</MenuItem>
-                <MenuItem value="Licitação">Licitação</MenuItem>
-                <MenuItem value="Análise Legislativa">Análise Legislativa</MenuItem>
-                <MenuItem value="Revisão Contratual">Revisão Contratual</MenuItem>
-                <MenuItem value="Ação de Improbidade">Ação de Improbidade</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-
-          <Grid item xs={12} sm={6} md={3}>
-            <TextField
-              fullWidth
-              size="small"
-              label="Interessados"
-              value={filters.interessados}
-              onChange={(e) => handleFilterChange('interessados', e.target.value)}
-              placeholder="Ex: SEFAZ, CGE, SEPLAG..."
-            />
-          </Grid>
-
-          <Grid item xs={12} sm={6} md={3}>
-            <Box display="flex" gap={1}>
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={clearFilters}
-                startIcon={<FilterIcon />}
-              >
-                Limpar
-              </Button>
-              
-              <Tooltip title={viewMode === 'grid' ? 'Vista em Lista' : 'Vista em Grade'}>
-                <IconButton
-                  onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-                  size="small"
-                >
-                  {viewMode === 'grid' ? <ListIcon /> : <GridIcon />}
-                </IconButton>
-              </Tooltip>
-            </Box>
-          </Grid>
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid item xs={12} md={6}>
+          <TextField
+            fullWidth
+            placeholder="Buscar por número do processo..."
+            value={filtros.numero || ''}
+            onChange={(e) => handleSearch(e.target.value)}
+            InputProps={{
+              startAdornment: <Search sx={{ mr: 1, color: 'action.active' }} />,
+            }}
+          />
         </Grid>
-      </Paper>
-
-      {/* Resultados */}
-      <Box mb={2}>
-        <Typography variant="body2" color="text.secondary">
-          Mostrando {processosPage.length} de {processosFiltrados.length} processos
-          {filters.numero || filters.tipo || filters.interessados ? ' (filtrados)' : ''}
-        </Typography>
-      </Box>
+        <Grid item xs={12} md={3}>
+          <FormControl fullWidth>
+            <InputLabel>Tipo</InputLabel>
+            <Select
+              value={filtros.tipo || ''}
+              label="Tipo"
+              onChange={(e) => handleFilterChange('tipo', e.target.value)}
+            >
+              <MenuItem value="">Todos</MenuItem>
+              <MenuItem value="Administrativo">Administrativo</MenuItem>
+              <MenuItem value="Processo Administrativo Disciplinar">PAD</MenuItem>
+              <MenuItem value="Licitação">Licitação</MenuItem>
+              <MenuItem value="Análise Legislativa">Análise Legislativa</MenuItem>
+              <MenuItem value="Revisão Contratual">Revisão Contratual</MenuItem>
+              <MenuItem value="Ação de Improbidade">Ação de Improbidade</MenuItem>
+            </Select>
+          </FormControl>
+        </Grid>
+        <Grid item xs={12} md={3}>
+          <FormControl fullWidth>
+            <InputLabel>Interessados</InputLabel>
+            <Select
+              value={filtros.interessados || ''}
+              label="Interessados"
+              onChange={(e) => handleFilterChange('interessados', e.target.value)}
+            >
+              <MenuItem value="">Todos</MenuItem>
+              <MenuItem value="SEFAZ">SEFAZ-RJ</MenuItem>
+              <MenuItem value="CGE">CGE-RJ</MenuItem>
+              <MenuItem value="SEPLAG">SEPLAG-RJ</MenuItem>
+              <MenuItem value="PGE">PGE-RJ</MenuItem>
+              <MenuItem value="MPRJ">MPRJ</MenuItem>
+              <MenuItem value="ALERJ">ALERJ</MenuItem>
+            </Select>
+          </FormControl>
+        </Grid>
+      </Grid>
 
       {/* Lista de Processos */}
-      {processosPage.length > 0 ? (
-        <Grid container spacing={2}>
-          {processosPage.map((processo) => (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={processo.id}>
-              <ProcessCard
-                processo={processo}
-                onView={handleView}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onAnalyze={handleAnalyze}
-              />
-            </Grid>
-          ))}
-        </Grid>
-      ) : (
-        <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <Typography variant="h6" color="text.secondary" gutterBottom>
-            Nenhum processo encontrado
-          </Typography>
-          <Typography variant="body2" color="text.secondary" mb={2}>
-            Tente ajustar os filtros ou criar um novo processo.
-          </Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => navigate('/novo-processo')}
-          >
-            Criar Primeiro Processo
-          </Button>
-        </Paper>
-      )}
+      <Grid container spacing={2}>
+        {processos.map((processo) => (
+          <Grid item xs={12} sm={6} md={4} key={processo.id}>
+            <Card 
+              sx={{ 
+                height: '100%',
+                transition: 'all 0.2s ease-in-out',
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: 6,
+                  cursor: 'pointer'
+                }
+              }}
+              onClick={() => visualizarProcesso(processo.id)}
+            >
+              <CardContent>
+                {/* Número do Processo */}
+                <Typography 
+                  variant="h6" 
+                  color="primary" 
+                  gutterBottom
+                  sx={{ 
+                    fontWeight: 'bold',
+                    fontSize: '1rem',
+                    overflow: 'hidden',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 1,
+                    WebkitBoxOrient: 'vertical',
+                  }}
+                >
+                  {processo.numero}
+                </Typography>
+
+                {/* Tipo do Processo */}
+                <Typography 
+                  variant="body2" 
+                  color="text.secondary" 
+                  sx={{ 
+                    mb: 2,
+                    overflow: 'hidden',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    minHeight: 40,
+                  }}
+                >
+                  {processo.tipo || 'Sem tipo definido'}
+                </Typography>
+
+                {/* Interessados */}
+                <Typography variant="caption" color="text.disabled" display="block" sx={{ mb: 1 }}>
+                  <strong>Interessados:</strong> {processo.interessados || 'N/A'}
+                </Typography>
+
+                {/* Localização atual */}
+                <Box sx={{ mb: 2 }}>
+                  <Chip 
+                    label={processo.localizacao_atual || 'Em tramitação'} 
+                    color="primary"
+                    size="small"
+                  />
+                </Box>
+
+                {/* Informações adicionais */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="caption" color="text.disabled">
+                    {processo.total_documentos || 0} docs
+                  </Typography>
+                  <Typography variant="caption" color="text.disabled">
+                    {processo.data_geracao ? new Date(processo.data_geracao).toLocaleDateString('pt-BR') : 'N/A'}
+                  </Typography>
+                </Box>
+
+                {/* Botão de ação */}
+                <Button 
+                  fullWidth 
+                  variant="outlined" 
+                  size="small" 
+                  sx={{ mt: 2 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    visualizarProcesso(processo.id);
+                  }}
+                >
+                  Visualizar
+                </Button>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
 
       {/* Paginação */}
       {totalPages > 1 && (
-        <Box display="flex" justifyContent="center" mt={3}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
           <Pagination
             count={totalPages}
-            page={filters.page}
+            page={page}
             onChange={handlePageChange}
             color="primary"
-            size="large"
+            showFirstButton
+            showLastButton
           />
         </Box>
       )}
+
+      {/* Informações de debug */}
+      <Box sx={{ mt: 3, p: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>
+        <Typography variant="caption" color="text.secondary">
+          <strong>Debug:</strong> Mostrando {processos.length} de {totalProcessos} processos | 
+          Página {page} de {totalPages} | 
+          API: {processosData ? '✅ Conectada' : '❌ Desconectada'}
+        </Typography>
+      </Box>
     </Box>
   );
 };

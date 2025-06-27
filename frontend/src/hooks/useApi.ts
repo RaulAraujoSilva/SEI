@@ -8,6 +8,10 @@ import {
   ProcessoFilters,
   Documento,
   DocumentoFilters,
+  EstatisticasLLM,
+  ConfiguracaoLLM,
+  ConfiguracaoLLMUpdate,
+  ConfiguracaoForm,
 } from '../types';
 
 // ============================================================================
@@ -132,6 +136,93 @@ export const useApiLoading = (...queries: any[]) => {
 };
 
 // ============================================================================
+// HOOKS PARA LLM
+// ============================================================================
+export const useEstatisticasLLM = () => {
+  return useQuery({
+    queryKey: ['llm', 'statistics'],
+    queryFn: () => apiService.getEstatisticasLLM(),
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    refetchInterval: 10 * 60 * 1000, // Atualiza a cada 10 minutos
+  });
+};
+
+export const useEstimativaCusto = () => {
+  return useQuery({
+    queryKey: ['llm', 'estimation'],
+    queryFn: () => apiService.getEstimativaCusto(),
+    staleTime: 2 * 60 * 1000, // 2 minutos
+    refetchInterval: 5 * 60 * 1000, // Atualiza a cada 5 minutos
+  });
+};
+
+export const useConfiguracaoLLM = () => {
+  return useQuery({
+    queryKey: ['llm', 'config'],
+    queryFn: () => apiService.getConfiguracaoLLM(),
+    staleTime: 10 * 60 * 1000, // 10 minutos
+  });
+};
+
+export const useUpdateConfiguracaoLLM = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (data: ConfiguracaoLLMUpdate) => apiService.updateConfiguracaoLLM(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['llm', 'config'] });
+      queryClient.invalidateQueries({ queryKey: ['llm', 'statistics'] });
+      actions.showSuccess('Configuração LLM atualizada com sucesso!');
+    },
+    onError: (error: any) => {
+      actions.showError(error.message || 'Erro ao atualizar configuração LLM');
+    },
+  });
+};
+
+export const useAnalisarDocumento = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (id: number) => apiService.analisarDocumento(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['documentos'] });
+      queryClient.invalidateQueries({ queryKey: ['llm', 'statistics'] });
+      actions.showSuccess('Análise do documento iniciada!');
+    },
+    onError: (error: any) => {
+      actions.showError(error.message || 'Erro ao analisar documento');
+    },
+  });
+};
+
+// ============================================================================
+// HOOKS PARA CONFIGURAÇÕES GERAIS
+// ============================================================================
+export const useConfiguracoes = () => {
+  return useQuery({
+    queryKey: ['configuracoes'],
+    queryFn: () => apiService.getConfiguracoes(),
+    staleTime: 30 * 60 * 1000, // 30 minutos
+  });
+};
+
+export const useUpdateConfiguracoes = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (data: ConfiguracaoForm) => apiService.updateConfiguracoes(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['configuracoes'] });
+      actions.showSuccess('Configurações salvas com sucesso!');
+    },
+    onError: (error: any) => {
+      actions.showError(error.message || 'Erro ao salvar configurações');
+    },
+  });
+};
+
+// ============================================================================
 // HOOK PARA INVALIDAR QUERIES
 // ============================================================================
 export const useInvalidateQueries = () => {
@@ -141,6 +232,8 @@ export const useInvalidateQueries = () => {
     invalidateProcessos: () => queryClient.invalidateQueries({ queryKey: ['processos'] }),
     invalidateDocumentos: () => queryClient.invalidateQueries({ queryKey: ['documentos'] }),
     invalidateDashboard: () => queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+    invalidateLLM: () => queryClient.invalidateQueries({ queryKey: ['llm'] }),
+    invalidateConfiguracoes: () => queryClient.invalidateQueries({ queryKey: ['configuracoes'] }),
     invalidateAll: () => queryClient.invalidateQueries(),
   };
 }; 
