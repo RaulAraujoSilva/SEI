@@ -37,7 +37,7 @@ module.exports = (env, argv) => {
     },
     plugins: [
       new HtmlWebpackPlugin({
-        template: './public/index.html',
+        template: path.join(__dirname, 'public', 'index.html'),
         title: 'SEI-Com AI',
         filename: 'index.html',
         minify: !isDevelopment,
