@@ -57,18 +57,12 @@ const ProcessCard: React.FC<ProcessCardProps> = ({
   };
 
   const getTipoColor = (tipo: string) => {
-    switch (tipo) {
-      case 'administrativo':
-        return 'primary';
-      case 'judicial':
-        return 'secondary';
-      case 'executivo':
-        return 'success';
-      case 'legislativo':
-        return 'info';
-      default:
-        return 'default';
-    }
+    if (tipo.includes('Administrativo') || tipo.includes('PAD')) return 'primary';
+    if (tipo.includes('Licitação') || tipo.includes('Pregão')) return 'success';
+    if (tipo.includes('Legislativa') || tipo.includes('Lei')) return 'info';
+    if (tipo.includes('Contratual') || tipo.includes('Revisão')) return 'warning';
+    if (tipo.includes('Improbidade') || tipo.includes('Ação')) return 'error';
+    return 'default';
   };
 
   const formatDate = (dateString: string) => {
@@ -78,49 +72,48 @@ const ProcessCard: React.FC<ProcessCardProps> = ({
   return (
     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <CardContent sx={{ flexGrow: 1 }}>
-        {/* Header com número e status */}
+        {/* Header com número */}
         <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1}>
-          <Typography variant="h6" component="h3" noWrap sx={{ maxWidth: '70%' }}>
+          <Typography variant="h6" component="h3" noWrap sx={{ maxWidth: '100%' }}>
             {processo.numero}
           </Typography>
-          <StatusChip status={processo.situacao as any} />
         </Box>
 
         {/* Tipo do processo */}
         <Box mb={1}>
           <Chip
-            label={processo.tipo.charAt(0).toUpperCase() + processo.tipo.slice(1)}
+            label={processo.tipo}
             color={getTipoColor(processo.tipo) as any}
             size="small"
             variant="outlined"
           />
         </Box>
 
-        {/* Assunto */}
+        {/* Interessados */}
         <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-          <strong>Assunto:</strong> {processo.assunto}
+          <strong>Interessados:</strong> {processo.interessados}
         </Typography>
 
-        {/* Interessado */}
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-          <strong>Interessado:</strong> {processo.interessado}
-        </Typography>
+        {/* Localização atual */}
+        {processo.localizacao_atual && (
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            <strong>Localização:</strong> {processo.localizacao_atual}
+          </Typography>
+        )}
+
+        {/* Observação do usuário */}
+        {processo.observacao_usuario && (
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            <strong>Observação:</strong> {processo.observacao_usuario}
+          </Typography>
+        )}
 
         {/* Informações adicionais */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2, flexWrap: 'wrap' }}>
-          {processo.orgao && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <BusinessIcon fontSize="small" color="action" />
-              <Typography variant="caption" color="text.secondary">
-                {processo.orgao}
-              </Typography>
-            </Box>
-          )}
-          
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
             <CalendarIcon fontSize="small" color="action" />
             <Typography variant="caption" color="text.secondary">
-              {formatDate(processo.data_autuacao)}
+              {formatDate(processo.data_geracao)}
             </Typography>
           </Box>
         </Box>

@@ -34,101 +34,97 @@ const ProcessosList: React.FC = () => {
     size: 12,
     numero: '',
     tipo: '',
-    situacao: '',
+    interessados: '',
   });
 
-  // Dados mock para demonstração
+  // Dados mock - AJUSTADOS PARA ESPECIFICAÇÃO SEI
   const processosMock: Processo[] = [
     {
       id: 1,
-      numero: '2024/001-RJ',
-      tipo: 'administrativo',
-      assunto: 'Licitação para aquisição de equipamentos de TI para modernização da infraestrutura',
-      interessado: 'Secretaria de Estado de Fazenda',
-      situacao: 'tramitacao',
-      data_autuacao: '2024-01-15',
-      orgao: 'SEFAZ-RJ',
-      url_sei: 'https://sei.rj.gov.br/processo/2024001',
+      numero: 'SEI-070002/013015/2024',
+      tipo: 'Administrativo: Elaboração de Correspondência',
+      data_geracao: '2024-07-16',
+      interessados: 'Secretaria de Estado de Fazenda - SEFAZ/RJ',
+      url_processo: 'https://sei.rj.gov.br/sei/controlador.php?acao=protocolo_visualizar&id_protocolo=070002013015',
+      observacao_usuario: 'Processo prioritário para análise',
       created_at: '2024-01-15T10:30:00Z',
       updated_at: '2024-01-27T09:15:00Z',
       total_documentos: 12,
       documentos_analisados: 8,
       custo_total_llm: 15.45,
+      localizacao_atual: 'SEFAZ/COGET - Coordenação de Gestão Tecnológica',
     },
     {
       id: 2,
-      numero: '2024/002-RJ',
-      tipo: 'judicial',
-      assunto: 'Processo administrativo disciplinar contra servidor',
-      interessado: 'Corregedoria Geral do Estado',
-      situacao: 'concluido',
-      data_autuacao: '2024-01-10',
-      orgao: 'CGE-RJ',
+      numero: 'SEI-040001/008732/2024',
+      tipo: 'Processo Administrativo Disciplinar',
+      data_geracao: '2024-05-20',
+      interessados: 'Corregedoria Geral do Estado - CGE/RJ',
+      url_processo: 'https://sei.rj.gov.br/sei/controlador.php?acao=protocolo_visualizar&id_protocolo=040001008732',
       created_at: '2024-01-10T14:20:00Z',
       updated_at: '2024-01-25T16:30:00Z',
       total_documentos: 23,
       documentos_analisados: 23,
       custo_total_llm: 34.20,
+      localizacao_atual: 'CGE/CORREGEDORIA - Concluído',
     },
     {
       id: 3,
-      numero: '2024/003-RJ',
-      tipo: 'executivo',
-      assunto: 'Contratação de serviços de consultoria em gestão pública',
-      interessado: 'Secretaria de Planejamento',
-      situacao: 'tramitacao',
-      data_autuacao: '2024-01-20',
-      orgao: 'SEPLAG-RJ',
+      numero: 'SEI-120005/025678/2024',
+      tipo: 'Licitação: Pregão Eletrônico',
+      data_geracao: '2024-08-10',
+      interessados: 'Secretaria de Planejamento e Gestão - SEPLAG/RJ',
+      url_processo: 'https://sei.rj.gov.br/sei/controlador.php?acao=protocolo_visualizar&id_protocolo=120005025678',
+      observacao_usuario: 'Contratação de consultoria em gestão',
       created_at: '2024-01-20T08:45:00Z',
       updated_at: '2024-01-27T11:20:00Z',
       total_documentos: 7,
       documentos_analisados: 5,
       custo_total_llm: 8.90,
+      localizacao_atual: 'SEPLAG/CPL - Comissão Permanente de Licitação',
     },
     {
       id: 4,
-      numero: '2024/004-RJ',
-      tipo: 'legislativo',
-      assunto: 'Análise de projeto de lei sobre transparência fiscal',
-      interessado: 'Assembleia Legislativa do Estado',
-      situacao: 'suspenso',
-      data_autuacao: '2024-01-12',
-      orgao: 'ALERJ',
+      numero: 'SEI-030002/011456/2024',
+      tipo: 'Análise Legislativa: Projeto de Lei',
+      data_geracao: '2024-06-12',
+      interessados: 'Assembleia Legislativa do Estado do Rio de Janeiro - ALERJ',
+      url_processo: 'https://sei.rj.gov.br/sei/controlador.php?acao=protocolo_visualizar&id_protocolo=030002011456',
       created_at: '2024-01-12T15:10:00Z',
       updated_at: '2024-01-24T13:45:00Z',
       total_documentos: 18,
       documentos_analisados: 12,
       custo_total_llm: 22.15,
+      localizacao_atual: 'ALERJ/COMISSÃO - Em análise técnica',
     },
     {
       id: 5,
-      numero: '2024/005-RJ',
-      tipo: 'administrativo',
-      assunto: 'Revisão de contratos de terceirização de serviços',
-      interessado: 'Procuradoria Geral do Estado',
-      situacao: 'tramitacao',
-      data_autuacao: '2024-01-25',
-      orgao: 'PGE-RJ',
+      numero: 'SEI-080003/017890/2024',
+      tipo: 'Revisão Contratual',
+      data_geracao: '2024-09-25',
+      interessados: 'Procuradoria Geral do Estado - PGE/RJ',
+      url_processo: 'https://sei.rj.gov.br/sei/controlador.php?acao=protocolo_visualizar&id_protocolo=080003017890',
+      observacao_usuario: 'Contratos de terceirização prioritários',
       created_at: '2024-01-25T09:30:00Z',
       updated_at: '2024-01-27T10:15:00Z',
       total_documentos: 15,
       documentos_analisados: 3,
       custo_total_llm: 4.25,
+      localizacao_atual: 'PGE/PROCURADORIA - Em tramitação',
     },
     {
       id: 6,
-      numero: '2024/006-RJ',
-      tipo: 'judicial',
-      assunto: 'Ação de improbidade administrativa',
-      interessado: 'Ministério Público do Estado',
-      situacao: 'concluido',
-      data_autuacao: '2024-01-08',
-      orgao: 'MPRJ',
+      numero: 'SEI-050001/012345/2024',
+      tipo: 'Ação de Improbidade Administrativa',
+      data_geracao: '2024-04-08',
+      interessados: 'Ministério Público do Estado do Rio de Janeiro - MPRJ',
+      url_processo: 'https://sei.rj.gov.br/sei/controlador.php?acao=protocolo_visualizar&id_protocolo=050001012345',
       created_at: '2024-01-08T11:20:00Z',
       updated_at: '2024-01-26T14:30:00Z',
       total_documentos: 31,
       documentos_analisados: 31,
       custo_total_llm: 47.80,
+      localizacao_atual: 'MPRJ/PROMOTORIA - Processo arquivado',
     },
   ];
 
@@ -168,7 +164,7 @@ const ProcessosList: React.FC = () => {
       size: 12,
       numero: '',
       tipo: '',
-      situacao: '',
+      interessados: '',
     });
   };
 
@@ -177,10 +173,10 @@ const ProcessosList: React.FC = () => {
     if (filters.numero && !processo.numero.toLowerCase().includes(filters.numero.toLowerCase())) {
       return false;
     }
-    if (filters.tipo && processo.tipo !== filters.tipo) {
+    if (filters.tipo && !processo.tipo.toLowerCase().includes(filters.tipo.toLowerCase())) {
       return false;
     }
-    if (filters.situacao && processo.situacao !== filters.situacao) {
+    if (filters.interessados && !processo.interessados.toLowerCase().includes(filters.interessados.toLowerCase())) {
       return false;
     }
     return true;
@@ -236,29 +232,25 @@ const ProcessosList: React.FC = () => {
                 onChange={(e) => handleFilterChange('tipo', e.target.value)}
               >
                 <MenuItem value="">Todos</MenuItem>
-                <MenuItem value="administrativo">Administrativo</MenuItem>
-                <MenuItem value="judicial">Judicial</MenuItem>
-                <MenuItem value="executivo">Executivo</MenuItem>
-                <MenuItem value="legislativo">Legislativo</MenuItem>
+                <MenuItem value="Administrativo">Administrativo</MenuItem>
+                <MenuItem value="Processo Administrativo Disciplinar">PAD</MenuItem>
+                <MenuItem value="Licitação">Licitação</MenuItem>
+                <MenuItem value="Análise Legislativa">Análise Legislativa</MenuItem>
+                <MenuItem value="Revisão Contratual">Revisão Contratual</MenuItem>
+                <MenuItem value="Ação de Improbidade">Ação de Improbidade</MenuItem>
               </Select>
             </FormControl>
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Situação</InputLabel>
-              <Select
-                value={filters.situacao}
-                label="Situação"
-                onChange={(e) => handleFilterChange('situacao', e.target.value)}
-              >
-                <MenuItem value="">Todas</MenuItem>
-                <MenuItem value="tramitacao">Tramitação</MenuItem>
-                <MenuItem value="concluido">Concluído</MenuItem>
-                <MenuItem value="suspenso">Suspenso</MenuItem>
-                <MenuItem value="cancelado">Cancelado</MenuItem>
-              </Select>
-            </FormControl>
+            <TextField
+              fullWidth
+              size="small"
+              label="Interessados"
+              value={filters.interessados}
+              onChange={(e) => handleFilterChange('interessados', e.target.value)}
+              placeholder="Ex: SEFAZ, CGE, SEPLAG..."
+            />
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
@@ -289,7 +281,7 @@ const ProcessosList: React.FC = () => {
       <Box mb={2}>
         <Typography variant="body2" color="text.secondary">
           Mostrando {processosPage.length} de {processosFiltrados.length} processos
-          {filters.numero || filters.tipo || filters.situacao ? ' (filtrados)' : ''}
+          {filters.numero || filters.tipo || filters.interessados ? ' (filtrados)' : ''}
         </Typography>
       </Box>
 

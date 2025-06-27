@@ -23,19 +23,19 @@ const Dashboard: React.FC = () => {
   };
 
   const processosRecentes = [
-    { id: 1, numero: '2024/001-RJ', assunto: 'Licitação para aquisição de equipamentos de TI' },
-    { id: 2, numero: '2024/002-RJ', assunto: 'Processo administrativo disciplinar' },
-    { id: 3, numero: '2024/003-RJ', assunto: 'Contratação de serviços de consultoria' },
-    { id: 4, numero: '2024/004-RJ', assunto: 'Análise de documentação fiscal' },
-    { id: 5, numero: '2024/005-RJ', assunto: 'Revisão de contratos vigentes' },
+    { id: 1, numero: 'SEI-070002/013015/2024', tipo: 'Administrativo: Elaboração de Correspondência' },
+    { id: 2, numero: 'SEI-040001/008732/2024', tipo: 'Processo Administrativo Disciplinar' },
+    { id: 3, numero: 'SEI-120005/025678/2024', tipo: 'Licitação: Pregão Eletrônico' },
+    { id: 4, numero: 'SEI-030002/011456/2024', tipo: 'Análise Legislativa: Projeto de Lei' },
+    { id: 5, numero: 'SEI-080003/017890/2024', tipo: 'Revisão Contratual' },
   ];
 
   const atividades = [
-    { id: 1, mensagem: 'Novo processo 2024/001-RJ coletado com sucesso', timestamp: '2024-01-27 10:30' },
-    { id: 2, mensagem: 'Análise LLM concluída para documento DOC-456', timestamp: '2024-01-27 09:15' },
-    { id: 3, mensagem: 'Download de 5 documentos finalizado', timestamp: '2024-01-27 08:45' },
-    { id: 4, mensagem: 'Processo 2024/002-RJ atualizado', timestamp: '2024-01-26 16:20' },
-    { id: 5, mensagem: 'Sistema de análise LLM otimizado', timestamp: '2024-01-26 14:10' },
+    { id: 1, mensagem: 'Webscrape SEI-070002/013015/2024 coletado com sucesso', timestamp: '2024-01-27 10:30' },
+    { id: 2, mensagem: 'LLM analisou assunto do documento protocolo 2024001234', timestamp: '2024-01-27 09:15' },
+    { id: 3, mensagem: 'Download de 5 documentos PDF do SEI finalizado', timestamp: '2024-01-27 08:45' },
+    { id: 4, mensagem: 'Andamentos do processo SEI-040001/008732/2024 atualizados', timestamp: '2024-01-26 16:20' },
+    { id: 5, mensagem: 'Localização atual de 15 processos atualizada', timestamp: '2024-01-26 14:10' },
   ];
 
   return (
@@ -146,7 +146,7 @@ const Dashboard: React.FC = () => {
                   {processo.numero}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {processo.assunto}
+                  {processo.tipo}
                 </Typography>
               </Box>
             ))}

@@ -2,99 +2,105 @@
 // TIPOS PRINCIPAIS DO SISTEMA SEI-COM AI
 // ============================================================================
 
-// Status possíveis para processos e documentos
+// Status possíveis para documentos e análises
 export type StatusType = 'concluido' | 'pendente' | 'erro' | 'processando';
 
-// Situação do processo no SEI
-export type SituacaoProcesso = 'tramitacao' | 'concluido' | 'suspenso' | 'cancelado';
-
-// Tipos de processo
-export type TipoProcesso = 'administrativo' | 'judicial' | 'executivo' | 'legislativo';
+// Removido: SituacaoProcesso e TipoProcesso - não fazem parte da especificação SEI
 
 // ============================================================================
-// PROCESSO
+// PROCESSO (ALINHADO COM ESPECIFICAÇÃO SEI)
 // ============================================================================
 export interface Processo {
   id: number;
-  numero: string;
-  tipo: TipoProcesso;
-  assunto: string;
-  interessado: string;
-  situacao: SituacaoProcesso;
-  data_autuacao: string;
-  orgao?: string;
-  url_sei?: string;
-  observacoes?: string;
+  numero: string;                     // SEI-070002/013015/2024 (webscrape)
+  tipo: string;                       // Webscrape - tipo do processo
+  data_geracao: string;               // Webscrape - data de geração
+  interessados: string;               // Webscrape - interessados
+  url_processo: string;               // Informado pelo usuário
+  observacao_usuario?: string;        // Opcional - observação do usuário
+  hash_conteudo?: string;             // Sistema - hash para mudanças
   created_at: string;
-  updated_at: string;
+  updated_at: string;                 // Data última atualização automática
   
   // Relacionamentos
   documentos?: Documento[];
+  andamentos?: Andamento[];
   
   // Métricas calculadas
   total_documentos?: number;
   documentos_analisados?: number;
   custo_total_llm?: number;
+  localizacao_atual?: string;        // Unidade atual do processo
 }
 
 export interface ProcessoCreate {
   numero: string;
-  tipo: TipoProcesso;
-  assunto: string;
-  interessado: string;
-  situacao: SituacaoProcesso;
-  data_autuacao: string;
-  orgao?: string;
-  url_sei?: string;
-  observacoes?: string;
+  tipo: string;
+  data_geracao: string;
+  interessados: string;
+  url_processo: string;
+  observacao_usuario?: string;
 }
 
 export interface ProcessoUpdate {
-  tipo?: TipoProcesso;
-  assunto?: string;
-  interessado?: string;
-  situacao?: SituacaoProcesso;
-  data_autuacao?: string;
-  orgao?: string;
-  url_sei?: string;
-  observacoes?: string;
+  tipo?: string;
+  data_geracao?: string;
+  interessados?: string;
+  url_processo?: string;
+  observacao_usuario?: string;
 }
 
 // ============================================================================
-// DOCUMENTO
+// DOCUMENTO (ALINHADO COM ESPECIFICAÇÃO SEI)
 // ============================================================================
 export interface Documento {
   id: number;
   processo_id: number;
-  tipo: string;
-  nome: string;
-  conteudo?: string;
-  caminho_arquivo?: string;
-  tamanho_arquivo?: number;
-  status_analise: StatusType;
-  data_upload: string;
-  data_analise?: string;
+  numero_documento: string;           // Webscrape - número do documento
+  url_documento?: string;             // Webscrape - link para documento
+  tipo: string;                       // Webscrape - tipo do documento
+  data_documento?: string;            // Webscrape - data do documento
+  data_inclusao?: string;             // Webscrape - data de inclusão
+  unidade?: string;                   // Webscrape - unidade
+  assunto_documento?: string;         // LLM - assunto gerado pelo LLM
   
-  // Análise LLM
-  modelo_llm?: string;
-  tokens_utilizados?: number;
-  custo_analise?: number;
-  resumo?: string;
+  // Campos técnicos
+  arquivo_path?: string;              // Caminho local do arquivo
+  downloaded?: boolean;               // Se foi baixado
+  detalhamento_status: StatusType;    // Status da análise LLM
+  detalhamento_modelo?: string;       // Modelo LLM usado
+  detalhamento_tokens?: number;       // Tokens utilizados
+  detalhamento_data?: string;         // Data da análise
+  created_at: string;
+  updated_at: string;
   
   // Relacionamentos
   processo?: Processo;
   tags?: Tag[];
   entidades?: Entidade[];
-  historico_analise?: HistoricoAnalise[];
 }
 
 export interface DocumentoCreate {
   processo_id: number;
+  numero_documento: string;
+  url_documento?: string;
   tipo: string;
-  nome: string;
-  conteudo?: string;
-  caminho_arquivo?: string;
-  tamanho_arquivo?: number;
+  data_documento?: string;
+  data_inclusao?: string;
+  unidade?: string;
+}
+
+// ============================================================================
+// ANDAMENTO (ESPECIFICAÇÃO SEI)
+// ============================================================================
+export interface Andamento {
+  id: number;
+  processo_id: number;
+  data_hora: string;                  // Webscrape - data/hora
+  unidade: string;                    // Webscrape - unidade
+  descricao: string;                  // Webscrape - descrição
+  localizacao_atual: boolean;         // Sistema - se é localização atual
+  created_at: string;
 }
 
 // ============================================================================
@@ -150,8 +156,7 @@ export interface EstatisticasGerais {
 
 export interface EstatisticasProcessos {
   total: number;
-  por_tipo: Record<TipoProcesso, number>;
-  por_situacao: Record<SituacaoProcesso, number>;
+  por_tipo: Record<string, number>;        // Tipos dinâmicos do webscrape
   por_mes: Array<{
     mes: string;
     total: number;
@@ -271,10 +276,8 @@ export interface PaginatedResponse<T> {
 
 export interface ProcessoFilters extends PaginationParams {
   numero?: string;
-  tipo?: TipoProcesso;
-  situacao?: SituacaoProcesso;
-  interessado?: string;
-  orgao?: string;
+  tipo?: string;                    // Filtro por tipo dinâmico
+  interessados?: string;            // Ajustado para corresponder ao campo
   data_inicio?: string;
   data_fim?: string;
 }
@@ -407,13 +410,11 @@ export interface NovoProcessoForm {
 
 export interface ProcessoForm {
   numero: string;
-  tipo: TipoProcesso;
-  assunto: string;
-  interessado: string;
-  situacao: SituacaoProcesso;
-  data_autuacao: string;
-  orgao: string;
-  observacoes: string;
+  tipo: string;
+  data_geracao: string;
+  interessados: string;
+  url_processo: string;
+  observacao_usuario: string;
 }
 
 export interface ConfiguracaoForm {
