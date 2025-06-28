@@ -1,6 +1,7 @@
 """
 Router para endpoints de Processos - Fase 6
 """
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, and_, case
@@ -13,7 +14,7 @@ from app.models.api_schemas import (
     ProcessoCreate, ProcessoUpdate, ProcessoResponse, ProcessoStatistics,
     PaginatedProcessos, ProcessoSearchParams, ResponseMessage,
     PaginatedAndamentos, AndamentoResponse,
-    ProcessoListResponse, ScrapingPreviewRequest, ScrapingPreviewResponse,
+    ScrapingPreviewRequest, ScrapingPreviewResponse,
     SalvarProcessoCompletoRequest, SalvarProcessoCompletoResponse
 )
 from app.models.schemas import AndamentoCreate
@@ -22,8 +23,10 @@ from app.services.scraping_preview import ScrapingPreviewService
 
 router = APIRouter()
 
-# Inicializar services
-persistence_service = ProcessoPersistenceService()
+# Configurar logger
+logger = logging.getLogger(__name__)
+
+# Inicializar service que não depende de DB
 scraping_preview_service = ScrapingPreviewService()
 
 # ===== ENDPOINTS CRUD =====
@@ -551,10 +554,42 @@ async def preview_scraping(request: ScrapingPreviewRequest):
     try:
         logger.info(f"Preview de scraping solicitado para: {request.url}")
         
-        # Executar preview
-        resultado = scraping_preview_service.preview_scraping(request.url)
+        # Teste simples primeiro - retornar dados mockados
+        from app.models.api_schemas import ProcessoInfoPreview, ProtocoloInfoPreview, AndamentoInfoPreview
         
-        logger.info(f"Preview concluído: {resultado.total_protocolos} protocolos, {resultado.total_andamentos} andamentos")
+        # Dados de teste
+        autuacao_mock = ProcessoInfoPreview(
+            numero="SEI-070002/013015/2024",
+            tipo="Administrativo: Teste",
+            data_autuacao="28/06/2025",
+            interessado="TESTE"
+        )
+        
+        protocolo_mock = ProtocoloInfoPreview(
+            numero="12345678",
+            tipo="Documento de Teste",
+            data="28/06/2025",
+            data_inclusao="28/06/2025",
+            unidade="TESTE/UNIDADE",
+            url="https://sei.rj.gov.br/teste"
+        )
+        
+        andamento_mock = AndamentoInfoPreview(
+            data_hora="28/06/2025 11:00",
+            unidade="TESTE/UNIDADE",
+            descricao="Processo criado para teste"
+        )
+        
+        resultado = ScrapingPreviewResponse(
+            autuacao=autuacao_mock,
+            protocolos=[protocolo_mock],
+            andamentos=[andamento_mock],
+            url_original=request.url,
+            total_protocolos=1,
+            total_andamentos=1
+        )
+        
+        logger.info(f"Preview mockado concluído: {resultado.total_protocolos} protocolos, {resultado.total_andamentos} andamentos")
         return resultado
         
     except ValueError as e:
