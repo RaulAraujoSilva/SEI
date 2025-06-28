@@ -41,6 +41,8 @@ module.exports = (env, argv) => {
         title: 'SEI-Com AI',
         filename: 'index.html',
         minify: !isDevelopment,
+        inject: true,
+        cache: false,
       }),
       new webpack.DefinePlugin({
         'process.env.NODE_ENV': JSON.stringify(argv.mode || 'development'),

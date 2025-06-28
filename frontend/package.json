@@ -6,7 +6,7 @@
   "scripts": {
     "start": "webpack serve --mode development --open",
     "build": "webpack --mode production",
-    "build:render": "cross-env REACT_APP_API_URL=https://sei-jxdn.onrender.com/api/v1 webpack --mode production",
+    "build:render": "cross-env REACT_APP_API_URL=https://sei-jxdn.onrender.com/api/v1 webpack --config webpack.prod.config.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "lint": "eslint src --ext .ts,.tsx",
@@ -46,12 +46,13 @@
     "@types/jest": "^29.5.8",
     "cross-env": "^7.0.3",
     "css-loader": "^7.1.2",
-    "html-webpack-plugin": "^5.6.0",
+    "html-webpack-plugin": "5.6.0",
     "style-loader": "^4.0.0",
+    "terser-webpack-plugin": "^5.3.9",
     "ts-loader": "^9.5.1",
-    "webpack": "^5.89.0",
-    "webpack-cli": "^5.1.4",
-    "webpack-dev-server": "^4.15.1"
+    "webpack": "5.89.0",
+    "webpack-cli": "5.1.4",
+    "webpack-dev-server": "4.15.1"
   },
   "browserslist": {
     "production": [

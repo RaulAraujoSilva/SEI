@@ -21,4 +21,8 @@ services:
       - key: REACT_APP_ENV
         value: production
       - key: NODE_VERSION
-        value: "18" 
+        value: "18.20.4"
+      - key: NODE_ENV
+        value: production
+      - key: NPM_CONFIG_PRODUCTION
+        value: "false" 
