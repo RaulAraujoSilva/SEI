@@ -338,6 +338,8 @@ class DocumentAnalysis(BaseModel):
     cost_usd: Decimal
     processed_at: datetime
     error_message: Optional[str] = None
+    
+    model_config = {"protected_namespaces": ()}
 
 class EntityExtractionResult(BaseModel):
     """Resultado de extração de entidades"""
@@ -346,6 +348,8 @@ class EntityExtractionResult(BaseModel):
     confidence_scores: Dict[str, float]
     model_used: str
     tokens_used: int
+    
+    model_config = {"protected_namespaces": ()}
 
 class TagGenerationResult(BaseModel):
     """Resultado de geração de tags"""
@@ -354,6 +358,8 @@ class TagGenerationResult(BaseModel):
     processing_time_seconds: float
     model_used: str
     tokens_used: int
+    
+    model_config = {"protected_namespaces": ()}
 
 class LLMConfig(BaseModel):
     """Configuração do serviço LLM"""
