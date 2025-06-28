@@ -89,22 +89,22 @@ const ProcessCard: React.FC<ProcessCardProps> = ({
           />
         </Box>
 
-        {/* Interessados */}
+        {/* Interessado */}
         <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-          <strong>Interessados:</strong> {processo.interessados}
+          <strong>Interessado:</strong> {processo.interessado}
         </Typography>
 
-        {/* Localização atual */}
-        {processo.localizacao_atual && (
+        {/* Situação */}
+        {processo.situacao && (
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            <strong>Localização:</strong> {processo.localizacao_atual}
+            <strong>Situação:</strong> {processo.situacao}
           </Typography>
         )}
 
-        {/* Observação do usuário */}
-        {processo.observacao_usuario && (
+        {/* Assunto */}
+        {processo.assunto && (
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            <strong>Observação:</strong> {processo.observacao_usuario}
+            <strong>Assunto:</strong> {processo.assunto}
           </Typography>
         )}
 
@@ -113,7 +113,7 @@ const ProcessCard: React.FC<ProcessCardProps> = ({
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
             <CalendarIcon fontSize="small" color="action" />
             <Typography variant="caption" color="text.secondary">
-              {formatDate(processo.data_geracao)}
+              {formatDate(processo.data_autuacao)}
             </Typography>
           </Box>
         </Box>

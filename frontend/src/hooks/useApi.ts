@@ -121,6 +121,49 @@ export const useDocumentoEntidades = (id: number) => {
   });
 };
 
+export const useUpdateDocumento = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<Documento> }) => 
+      apiService.updateDocumento(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['documentos'] });
+      queryClient.invalidateQueries({ queryKey: ['documento', id] });
+      actions.showSuccess('Documento atualizado com sucesso!');
+    },
+    onError: (error: any) => {
+      actions.showError(error.message || 'Erro ao atualizar documento');
+    },
+  });
+};
+
+export const useValidarUrlSei = () => {
+  return useMutation({
+    mutationFn: (url: string) => apiService.validarUrlSei(url),
+    onError: (error: any) => {
+      actions.showError(error.message || 'Erro ao validar URL SEI');
+    },
+  });
+};
+
+export const useUploadDocumento = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ processoId, file, tipo }: { processoId: number; file: File; tipo: string }) => 
+      apiService.uploadDocumento(processoId, file, tipo),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['documentos'] });
+      queryClient.invalidateQueries({ queryKey: ['processo'] });
+      actions.showSuccess('Documento enviado com sucesso!');
+    },
+    onError: (error: any) => {
+      actions.showError(error.message || 'Erro ao enviar documento');
+    },
+  });
+};
+
 export const useEstatisticasDocumentos = () => {
   return useQuery({
     queryKey: ['documentos', 'statistics'],

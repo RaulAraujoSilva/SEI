@@ -61,7 +61,7 @@ import {
   Psychology,
   AutoAwesome,
 } from '@mui/icons-material';
-import { useCreateProcesso } from '../hooks/useApi';
+import { useCreateProcesso, useValidarUrlSei, useUploadDocumento } from '../hooks/useApi';
 import { apiService } from '../services/api';
 import { ProcessoCreate } from '../types';
 
@@ -148,8 +148,9 @@ const orgaosAutuadores = [
 const NovoProcesso: React.FC = () => {
   const navigate = useNavigate();
   
-  // Hook para criação de processo
+  // Hooks para criação de processo e upload
   const createProcessoMutation = useCreateProcesso();
+  const uploadDocumentoMutation = useUploadDocumento();
   
   // Estados do formulário
   const [activeStep, setActiveStep] = useState(0);
@@ -226,7 +227,10 @@ const NovoProcesso: React.FC = () => {
     }
   };
 
-  // Verificar URL do SEI
+  // Hook para validação real de URL
+  const validarUrlMutation = useValidarUrlSei();
+
+  // Verificar URL do SEI usando API real
   const verificarUrl = async (url: string) => {
     if (!url || !url.includes('sei.rj.gov.br')) {
       setUrlValida(false);
@@ -235,16 +239,19 @@ const NovoProcesso: React.FC = () => {
     
     setVerificandoUrl(true);
     try {
-      // Simular verificação da URL
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setUrlValida(true);
+      const resultado = await validarUrlMutation.mutateAsync(url);
+      setUrlValida(resultado.valida);
       
       // Auto-completar dados se possível
-      if (autoComplete && !formData.numero) {
-        const numeroMatch = url.match(/protocolo=(\d{12})/);
-        if (numeroMatch) {
-          const numeroSei = `SEI-${numeroMatch[1].substring(0, 6)}/${numeroMatch[1].substring(6, 12)}/${new Date().getFullYear()}`;
-          setFormData(prev => ({ ...prev, numero: numeroSei }));
+      if (autoComplete && resultado.valida && resultado.dados) {
+        if (resultado.dados.numero && !formData.numero) {
+          setFormData(prev => ({ ...prev, numero: resultado.dados.numero }));
+        }
+        if (resultado.dados.tipo && !formData.tipo) {
+          setFormData(prev => ({ ...prev, tipo: resultado.dados.tipo }));
+        }
+        if (resultado.dados.assunto && !formData.assunto) {
+          setFormData(prev => ({ ...prev, assunto: resultado.dados.assunto }));
         }
       }
     } catch (error) {
@@ -300,9 +307,9 @@ const NovoProcesso: React.FC = () => {
     setActiveStep(prev => prev - 1);
   };
 
-  // Upload de documentos
+  // Upload de documentos (preparação para upload após criação do processo)
   const handleFileUpload = async (files: FileList | null) => {
-    if (!files || !processoIdCriado) return;
+    if (!files) return;
     
     for (const file of Array.from(files)) {
       const novoDocumento: DocumentoUpload = {
@@ -316,32 +323,6 @@ const NovoProcesso: React.FC = () => {
       };
       
       setDocumentos(prev => [...prev, novoDocumento]);
-      
-      try {
-        // Atualizar status para uploading
-        setDocumentos(prev => prev.map(doc => 
-          doc.id === novoDocumento.id ? { ...doc, status: 'uploading', progresso: 10 } : doc
-        ));
-        
-        // Upload real via API
-        await apiService.uploadDocumento(processoIdCriado, file, novoDocumento.tipo);
-        
-        // Sucesso no upload
-        setDocumentos(prev => prev.map(doc => 
-          doc.id === novoDocumento.id 
-            ? { ...doc, status: 'concluido', progresso: 100 } 
-            : doc
-        ));
-        
-      } catch (error) {
-        console.error('Erro no upload:', error);
-        // Erro no upload
-        setDocumentos(prev => prev.map(doc => 
-          doc.id === novoDocumento.id 
-            ? { ...doc, status: 'erro', progresso: 0 } 
-            : doc
-        ));
-      }
     }
   };
 
@@ -388,6 +369,39 @@ const NovoProcesso: React.FC = () => {
       };
 
       const resultado = await createProcessoMutation.mutateAsync(processoData);
+      
+      // Upload de documentos se houver
+      if (documentos.length > 0) {
+        for (const documento of documentos) {
+          try {
+            // Atualizar status para uploading
+            setDocumentos(prev => prev.map(doc => 
+              doc.id === documento.id ? { ...doc, status: 'uploading', progresso: 50 } : doc
+            ));
+            
+            await uploadDocumentoMutation.mutateAsync({
+              processoId: resultado.id,
+              file: documento.arquivo,
+              tipo: documento.tipo
+            });
+            
+            // Sucesso no upload
+            setDocumentos(prev => prev.map(doc => 
+              doc.id === documento.id 
+                ? { ...doc, status: 'concluido', progresso: 100 } 
+                : doc
+            ));
+            
+          } catch (error) {
+            console.error('Erro no upload do documento:', error);
+            setDocumentos(prev => prev.map(doc => 
+              doc.id === documento.id 
+                ? { ...doc, status: 'erro', progresso: 0 } 
+                : doc
+            ));
+          }
+        }
+      }
       
       // Redirecionar para o processo criado
       navigate(`/processos/${resultado.id}`);

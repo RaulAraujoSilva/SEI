@@ -58,11 +58,11 @@ export interface ProcessoUpdate {
 export interface Documento {
   id: number;
   processo_id: number;
-  numero: string;                     // Backend usa 'numero' (não numero_documento)
+  numero: string;                     // ✅ Alinhado: Backend usa 'numero'
   url_documento?: string;             // URL do documento
   tipo: string;                       // Tipo do documento
   data_documento: string;             // Data do documento (obrigatório no backend)
-  descricao: string;                  // Backend usa 'descricao' (não assunto_documento)
+  descricao: string;                  // ✅ Alinhado: Backend usa 'descricao'
   
   // Campos técnicos do backend
   tamanho_arquivo?: number;           // Tamanho do arquivo

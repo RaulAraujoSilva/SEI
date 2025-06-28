@@ -242,7 +242,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
                       <DocumentIcon fontSize="small" color="secondary" />
                       <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                         <Typography variant="body2" noWrap>
-                          {documento.numero_documento}
+                          {documento.numero}
                         </Typography>
                         <Typography variant="caption" color="text.secondary" noWrap>
                           {documento.tipo}

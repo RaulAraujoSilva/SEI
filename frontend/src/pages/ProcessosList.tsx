@@ -32,7 +32,7 @@ const ProcessosList: React.FC = () => {
   const [filtros, setFiltros] = useState<ProcessoFilters>({
     numero: '',
     tipo: '',
-    interessados: '',
+    interessado: '',
     size: 12,
     page: 1,
   });
@@ -216,11 +216,11 @@ const ProcessosList: React.FC = () => {
         </Grid>
         <Grid item xs={12} md={3}>
           <FormControl fullWidth>
-            <InputLabel>Interessados</InputLabel>
+            <InputLabel>Interessado</InputLabel>
             <Select
-              value={filtros.interessados || ''}
-              label="Interessados"
-              onChange={(e) => handleFilterChange('interessados', e.target.value)}
+              value={filtros.interessado || ''}
+              label="Interessado"
+              onChange={(e) => handleFilterChange('interessado', e.target.value)}
             >
               <MenuItem value="">Todos</MenuItem>
               <MenuItem value="SEFAZ">SEFAZ-RJ</MenuItem>
@@ -284,15 +284,15 @@ const ProcessosList: React.FC = () => {
                   {processo.tipo || 'Sem tipo definido'}
                 </Typography>
 
-                {/* Interessados */}
+                {/* Interessado */}
                 <Typography variant="caption" color="text.disabled" display="block" sx={{ mb: 1 }}>
-                  <strong>Interessados:</strong> {processo.interessados || 'N/A'}
+                  <strong>Interessado:</strong> {processo.interessado || 'N/A'}
                 </Typography>
 
-                {/* Localização atual */}
+                {/* Situação */}
                 <Box sx={{ mb: 2 }}>
                   <Chip 
-                    label={processo.localizacao_atual || 'Em tramitação'} 
+                    label={processo.situacao || 'Em tramitação'} 
                     color="primary"
                     size="small"
                   />
@@ -304,7 +304,7 @@ const ProcessosList: React.FC = () => {
                     {processo.total_documentos || 0} docs
                   </Typography>
                   <Typography variant="caption" color="text.disabled">
-                    {processo.data_geracao ? new Date(processo.data_geracao).toLocaleDateString('pt-BR') : 'N/A'}
+                    {processo.data_autuacao ? new Date(processo.data_autuacao).toLocaleDateString('pt-BR') : 'N/A'}
                   </Typography>
                 </Box>
 
