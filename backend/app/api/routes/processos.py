@@ -554,42 +554,10 @@ async def preview_scraping(request: ScrapingPreviewRequest):
     try:
         logger.info(f"Preview de scraping solicitado para: {request.url}")
         
-        # Teste simples primeiro - retornar dados mockados
-        from app.models.api_schemas import ProcessoInfoPreview, ProtocoloInfoPreview, AndamentoInfoPreview
+        # Executar preview real
+        resultado = scraping_preview_service.preview_scraping(request.url)
         
-        # Dados de teste
-        autuacao_mock = ProcessoInfoPreview(
-            numero="SEI-070002/013015/2024",
-            tipo="Administrativo: Teste",
-            data_autuacao="28/06/2025",
-            interessado="TESTE"
-        )
-        
-        protocolo_mock = ProtocoloInfoPreview(
-            numero="12345678",
-            tipo="Documento de Teste",
-            data="28/06/2025",
-            data_inclusao="28/06/2025",
-            unidade="TESTE/UNIDADE",
-            url="https://sei.rj.gov.br/teste"
-        )
-        
-        andamento_mock = AndamentoInfoPreview(
-            data_hora="28/06/2025 11:00",
-            unidade="TESTE/UNIDADE",
-            descricao="Processo criado para teste"
-        )
-        
-        resultado = ScrapingPreviewResponse(
-            autuacao=autuacao_mock,
-            protocolos=[protocolo_mock],
-            andamentos=[andamento_mock],
-            url_original=request.url,
-            total_protocolos=1,
-            total_andamentos=1
-        )
-        
-        logger.info(f"Preview mockado concluído: {resultado.total_protocolos} protocolos, {resultado.total_andamentos} andamentos")
+        logger.info(f"Preview concluído: {resultado.total_protocolos} protocolos, {resultado.total_andamentos} andamentos")
         return resultado
         
     except ValueError as e:

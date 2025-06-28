@@ -96,10 +96,13 @@ class ScrapingPreviewService:
                 processo = Processo(
                     numero=dados.autuacao.numero,
                     tipo=dados.autuacao.tipo,
+                    assunto=dados.autuacao.tipo,  # Usar tipo como assunto por enquanto
                     data_autuacao=self._parse_data_brasileira(dados.autuacao.data_autuacao),
                     interessado=dados.autuacao.interessado or "Não informado",
                     situacao="Importado do SEI",
-                    url=dados.url
+                    orgao_autuador="SEI-RJ",
+                    url_processo=dados.url,
+                    hash_conteudo=f"import_{dados.autuacao.numero}_{datetime.now().timestamp()}"
                 )
                 
                 db.add(processo)
@@ -111,11 +114,11 @@ class ScrapingPreviewService:
                 for protocolo in dados.protocolos:
                     documento = Documento(
                         processo_id=processo_id,
-                        numero=protocolo.numero,
+                        numero_documento=protocolo.numero,
                         tipo=protocolo.tipo,
-                        descricao=protocolo.tipo,
                         data_documento=self._parse_data_brasileira(protocolo.data),
-                        url_documento=protocolo.url
+                        data_inclusao=self._parse_data_brasileira(protocolo.data_inclusao),
+                        unidade=protocolo.unidade
                     )
                     
                     db.add(documento)
