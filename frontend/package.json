@@ -6,9 +6,10 @@
   "scripts": {
     "start": "webpack serve --mode development --open",
     "build": "webpack --mode production",
-    "build:render": "cross-env NODE_OPTIONS=--max-old-space-size=4096 REACT_APP_API_URL=https://sei-jxdn.onrender.com/api/v1 webpack --config webpack.prod.config.js --verbose",
+    "build:render": "cross-env NODE_OPTIONS=--max-old-space-size=4096 REACT_APP_API_URL=https://sei-jxdn.onrender.com/api/v1 NODE_ENV=production webpack --config webpack.prod.config.js",
     "build:local": "cross-env REACT_APP_API_URL=http://localhost:8000/api/v1 webpack --config webpack.prod.config.js",
-    "prebuild": "node build-diagnostic.js",
+    "build:fallback": "cross-env NODE_OPTIONS=--max-old-space-size=4096 REACT_APP_API_URL=https://sei-jxdn.onrender.com/api/v1 NODE_ENV=production webpack --mode production",
+    "prebuild": "node create-index-fallback.js && node build-diagnostic.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "lint": "eslint src --ext .ts,.tsx",

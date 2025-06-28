@@ -28,8 +28,25 @@ const criticalFiles = [
 
 console.log('\n📁 Critical Files Check:');
 criticalFiles.forEach(file => {
-  const exists = fs.existsSync(path.join(__dirname, file));
+  const fullPath = path.join(__dirname, file);
+  const exists = fs.existsSync(fullPath);
   console.log(`  ${exists ? '✅' : '❌'} ${file}`);
+  if (!exists && file === 'public/index.html') {
+    console.log(`    🔍 Debugging: Full path checked: ${fullPath}`);
+    console.log(`    🔍 Current working directory: ${process.cwd()}`);
+    console.log(`    🔍 __dirname: ${__dirname}`);
+    // Try to list public directory
+    const publicDir = path.join(__dirname, 'public');
+    if (fs.existsSync(publicDir)) {
+      console.log(`    📁 public directory exists, contents:`);
+      const publicContents = fs.readdirSync(publicDir);
+      publicContents.forEach(item => {
+        console.log(`      - ${item}`);
+      });
+    } else {
+      console.log(`    ❌ public directory does not exist at: ${publicDir}`);
+    }
+  }
 });
 
 // Check dependencies

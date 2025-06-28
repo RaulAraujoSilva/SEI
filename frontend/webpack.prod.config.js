@@ -104,5 +104,14 @@ module.exports = {
   },
   stats: {
     children: false,
+    colors: true,
+    modules: false,
+    chunks: false,
+    chunkModules: false,
+    timings: true,
+    assets: true,
+    errors: true,
+    warnings: true,
+    errorDetails: true,
   },
 }; 
