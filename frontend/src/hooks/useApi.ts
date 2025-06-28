@@ -88,7 +88,7 @@ export const useDeleteProcesso = () => {
 export const useDocumentos = (filters?: DocumentoFilters) => {
   return useQuery({
     queryKey: ['documentos', filters],
-    queryFn: () => apiService.getDocumentos(),
+    queryFn: () => apiService.getDocumentos(filters),
     staleTime: 5 * 60 * 1000,
     retry: 2,
   });
@@ -100,6 +100,33 @@ export const useDocumento = (id: number) => {
     queryFn: () => apiService.getDocumento(id),
     enabled: !!id,
     staleTime: 5 * 60 * 1000,
+  });
+};
+
+export const useDocumentoTags = (id: number) => {
+  return useQuery({
+    queryKey: ['documento', id, 'tags'],
+    queryFn: () => apiService.getDocumentoTags(id),
+    enabled: !!id,
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+export const useDocumentoEntidades = (id: number) => {
+  return useQuery({
+    queryKey: ['documento', id, 'entidades'],
+    queryFn: () => apiService.getDocumentoEntidades(id),
+    enabled: !!id,
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+export const useEstatisticasDocumentos = () => {
+  return useQuery({
+    queryKey: ['documentos', 'statistics'],
+    queryFn: () => apiService.getEstatisticasDocumentos(),
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    refetchInterval: 10 * 60 * 1000, // Atualiza a cada 10 minutos
   });
 };
 
@@ -223,6 +250,52 @@ export const useUpdateConfiguracoes = () => {
 };
 
 // ============================================================================
+// HOOKS PARA ANDAMENTOS
+// ============================================================================
+export const useAndamentos = (processoId: number, filters?: any) => {
+  return useQuery({
+    queryKey: ['andamentos', processoId, filters],
+    queryFn: () => apiService.getAndamentos(processoId, filters),
+    enabled: !!processoId,
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+export const useCreateAndamento = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ processoId, andamento }: { processoId: number; andamento: any }) => 
+      apiService.createAndamento(processoId, andamento),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['andamentos'] });
+      queryClient.invalidateQueries({ queryKey: ['processo'] });
+      actions.showSuccess('Andamento criado com sucesso!');
+    },
+    onError: (error: any) => {
+      actions.showError(error.message || 'Erro ao criar andamento');
+    },
+  });
+};
+
+export const useDeleteAndamento = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ processoId, andamentoId }: { processoId: number; andamentoId: number }) => 
+      apiService.deleteAndamento(processoId, andamentoId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['andamentos'] });
+      queryClient.invalidateQueries({ queryKey: ['processo'] });
+      actions.showSuccess('Andamento removido com sucesso!');
+    },
+    onError: (error: any) => {
+      actions.showError(error.message || 'Erro ao remover andamento');
+    },
+  });
+};
+
+// ============================================================================
 // HOOK PARA INVALIDAR QUERIES
 // ============================================================================
 export const useInvalidateQueries = () => {
@@ -234,6 +307,7 @@ export const useInvalidateQueries = () => {
     invalidateDashboard: () => queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
     invalidateLLM: () => queryClient.invalidateQueries({ queryKey: ['llm'] }),
     invalidateConfiguracoes: () => queryClient.invalidateQueries({ queryKey: ['configuracoes'] }),
+    invalidateAndamentos: () => queryClient.invalidateQueries({ queryKey: ['andamentos'] }),
     invalidateAll: () => queryClient.invalidateQueries(),
   };
 }; 

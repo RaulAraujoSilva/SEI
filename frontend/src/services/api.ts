@@ -7,6 +7,7 @@ import {
   Documento,
   DocumentoCreate,
   DocumentoFilters,
+  Andamento,
   Tag,
   Entidade,
   HistoricoAnalise,
@@ -113,7 +114,21 @@ class ApiService {
   // PROCESSOS
   // ============================================================================
   async getProcessos(filters?: ProcessoFilters): Promise<PaginatedResponse<Processo>> {
-    return this.request<PaginatedResponse<Processo>>('GET', '/processos/', null, filters);
+    // Mapear filtros do frontend para o formato do backend
+    const backendFilters = filters ? {
+      numero: filters.numero,
+      tipo: filters.tipo,
+      assunto: filters.assunto,
+      interessado: filters.interessado, // Singular no backend
+      situacao: filters.situacao,
+      orgao_autuador: filters.orgao_autuador,
+      data_inicio: filters.data_inicio,
+      data_fim: filters.data_fim,
+      page: filters.page || 1,
+      size: filters.size || 100,
+    } : undefined;
+
+    return this.request<PaginatedResponse<Processo>>('GET', '/processos/', null, backendFilters);
   }
 
   async getProcesso(id: number): Promise<Processo> {
@@ -121,11 +136,33 @@ class ApiService {
   }
 
   async createProcesso(data: ProcessoCreate): Promise<Processo> {
-    return this.request<Processo>('POST', '/processos/', data);
+    // Mapear campos do frontend para o backend
+    const backendData = {
+      numero: data.numero,
+      tipo: data.tipo,
+      assunto: data.assunto,
+      interessado: data.interessado, // Singular
+      situacao: data.situacao,
+      data_autuacao: data.data_autuacao, // Usar data_autuacao
+      orgao_autuador: data.orgao_autuador,
+      url_processo: data.url_processo,
+    };
+    
+    return this.request<Processo>('POST', '/processos/', backendData);
   }
 
   async updateProcesso(id: number, data: ProcessoUpdate): Promise<Processo> {
-    return this.request<Processo>('PATCH', `/processos/${id}`, data);
+    // Mapear campos do frontend para o backend
+    const backendData = {
+      tipo: data.tipo,
+      assunto: data.assunto,
+      interessado: data.interessado, // Singular
+      situacao: data.situacao,
+      orgao_autuador: data.orgao_autuador,
+      url_processo: data.url_processo,
+    };
+    
+    return this.request<Processo>('PATCH', `/processos/${id}`, backendData);
   }
 
   async deleteProcesso(id: number): Promise<void> {
@@ -133,7 +170,21 @@ class ApiService {
   }
 
   async searchProcessos(filters: ProcessoFilters): Promise<PaginatedResponse<Processo>> {
-    return this.request<PaginatedResponse<Processo>>('GET', '/processos/search', null, filters);
+    // Mapear filtros para o backend
+    const backendFilters = {
+      numero: filters.numero,
+      tipo: filters.tipo,
+      assunto: filters.assunto,
+      interessado: filters.interessado, // Singular
+      situacao: filters.situacao,
+      orgao_autuador: filters.orgao_autuador,
+      data_inicio: filters.data_inicio,
+      data_fim: filters.data_fim,
+      page: filters.page || 1,
+      size: filters.size || 100,
+    };
+    
+    return this.request<PaginatedResponse<Processo>>('GET', '/processos/search', null, backendFilters);
   }
 
   async getEstatisticasProcessos(): Promise<EstatisticasProcessos> {
@@ -144,7 +195,21 @@ class ApiService {
   // DOCUMENTOS
   // ============================================================================
   async getDocumentos(filters?: DocumentoFilters): Promise<PaginatedResponse<Documento>> {
-    return this.request<PaginatedResponse<Documento>>('GET', '/documentos/', null, filters);
+    // Mapear filtros do frontend para o formato do backend
+    const backendFilters = filters ? {
+      tipo: filters.tipo,
+      numero: filters.numero, // Backend usa 'numero'
+      descricao: filters.descricao, // Backend usa 'descricao'
+      status_analise: filters.status_analise,
+      data_inicio: filters.data_inicio,
+      data_fim: filters.data_fim,
+      processo_id: filters.processo_id,
+      q: filters.q, // Backend usa 'q' para busca de conteúdo
+      page: filters.page || 1,
+      size: filters.size || 100,
+    } : undefined;
+
+    return this.request<PaginatedResponse<Documento>>('GET', '/documentos/', null, backendFilters);
   }
 
   async getDocumento(id: number): Promise<Documento> {
@@ -152,11 +217,32 @@ class ApiService {
   }
 
   async updateDocumento(id: number, data: Partial<Documento>): Promise<Documento> {
-    return this.request<Documento>('PATCH', `/documentos/${id}`, data);
+    // Mapear campos se necessário
+    const backendData = {
+      tipo: data.tipo,
+      descricao: data.descricao, // Backend usa 'descricao'
+      detalhamento_status: data.detalhamento_status,
+    };
+    
+    return this.request<Documento>('PATCH', `/documentos/${id}`, backendData);
   }
 
   async searchDocumentos(filters: DocumentoFilters): Promise<PaginatedResponse<Documento>> {
-    return this.request<PaginatedResponse<Documento>>('GET', '/documentos/search', null, filters);
+    // Mapear filtros para o backend
+    const backendFilters = {
+      tipo: filters.tipo,
+      numero: filters.numero, // Backend usa 'numero'
+      descricao: filters.descricao, // Backend usa 'descricao'
+      status_analise: filters.status_analise,
+      data_inicio: filters.data_inicio,
+      data_fim: filters.data_fim,
+      processo_id: filters.processo_id,
+      q: filters.q, // Backend usa 'q' para busca
+      page: filters.page || 1,
+      size: filters.size || 100,
+    };
+    
+    return this.request<PaginatedResponse<Documento>>('GET', '/documentos/search', null, backendFilters);
   }
 
   async getEstatisticasDocumentos(): Promise<EstatisticasDocumentos> {
@@ -290,6 +376,27 @@ class ApiService {
     });
 
     return response.data;
+  }
+
+  // ============================================================================
+  // ANDAMENTOS
+  // ============================================================================
+  async getAndamentos(processoId: number, filters?: any): Promise<PaginatedResponse<Andamento>> {
+    const params: any = {};
+    if (filters) {
+      if (filters.page) params.page = filters.page;
+      if (filters.size) params.size = filters.size;
+    }
+
+    return this.request<PaginatedResponse<Andamento>>('GET', `/processos/${processoId}/andamentos`, undefined, params);
+  }
+
+  async createAndamento(processoId: number, andamento: any): Promise<Andamento> {
+    return this.request<Andamento>('POST', `/processos/${processoId}/andamentos`, andamento);
+  }
+
+  async deleteAndamento(processoId: number, andamentoId: number): Promise<void> {
+    return this.request<void>('DELETE', `/processos/${processoId}/andamentos/${andamentoId}`);
   }
 
   // ============================================================================

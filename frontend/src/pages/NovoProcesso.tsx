@@ -61,22 +61,29 @@ import {
   Psychology,
   AutoAwesome,
 } from '@mui/icons-material';
-import { Processo } from '../types';
+import { useCreateProcesso } from '../hooks/useApi';
+import { apiService } from '../services/api';
+import { ProcessoCreate } from '../types';
 
 interface FormData {
   numero: string;
   tipo: string;
-  data_geracao: string;
-  interessados: string;
-  url_processo: string;
-  observacao_usuario?: string;
+  assunto: string;           // Usar 'assunto' (backend)
+  interessado: string;       // Singular (backend) 
+  situacao: string;
+  data_autuacao: string;     // Usar data_autuacao (backend)
+  orgao_autuador: string;
+  url_processo?: string;
 }
 
 interface FormErrors {
   numero?: string;
   tipo?: string;
-  data_geracao?: string;
-  interessados?: string;
+  assunto?: string;
+  interessado?: string;
+  situacao?: string;
+  data_autuacao?: string;
+  orgao_autuador?: string;
   url_processo?: string;
 }
 
@@ -118,22 +125,45 @@ const tiposProcesso = [
   'Tecnologia: Segurança da Informação'
 ];
 
+const situacoesProcesso = [
+  'Em tramitação',
+  'Aguardando documentação',
+  'Em análise técnica',
+  'Pendente de aprovação',
+  'Concluído',
+  'Arquivado',
+  'Suspenso',
+];
+
+const orgaosAutuadores = [
+  'SEFAZ/RJ - Secretaria de Estado de Fazenda',
+  'SEFAZ/COGET - Coordenação de Gestão Tecnológica',
+  'SEFAZ/CONTADORIA - Contadoria Geral do Estado',
+  'SEFAZ/AUDITORIA - Auditoria Fiscal',
+  'SEFAZ/DTI - Diretoria de Tecnologia da Informação',
+  'SEFAZ/GABINETE - Gabinete do Secretário',
+  'SEFAZ/PLANEJAMENTO - Coordenação de Planejamento',
+];
+
 const NovoProcesso: React.FC = () => {
   const navigate = useNavigate();
+  
+  // Hook para criação de processo
+  const createProcessoMutation = useCreateProcesso();
   
   // Estados do formulário
   const [activeStep, setActiveStep] = useState(0);
   const [formData, setFormData] = useState<FormData>({
     numero: '',
     tipo: '',
-    data_geracao: new Date().toISOString().split('T')[0],
-    interessados: '',
-    url_processo: '',
-    observacao_usuario: ''
+    assunto: '',
+    interessado: '',
+    situacao: 'Em tramitação',
+    data_autuacao: new Date().toISOString().split('T')[0],
+    orgao_autuador: '',
+    url_processo: ''
   });
   const [errors, setErrors] = useState<FormErrors>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitSuccess, setSubmitSuccess] = useState(false);
   
   // Estados dos documentos
   const [documentos, setDocumentos] = useState<DocumentoUpload[]>([]);
@@ -159,22 +189,34 @@ const NovoProcesso: React.FC = () => {
       case 'tipo':
         if (!value.trim()) return 'Tipo do processo é obrigatório';
         return undefined;
+
+      case 'assunto':
+        if (!value.trim()) return 'Assunto do processo é obrigatório';
+        if (value.length < 10) return 'Assunto deve ter pelo menos 10 caracteres';
+        return undefined;
         
-      case 'data_geracao':
-        if (!value) return 'Data de geração é obrigatória';
+      case 'data_autuacao':
+        if (!value) return 'Data de autuação é obrigatória';
         const data = new Date(value);
         const hoje = new Date();
         if (data > hoje) return 'Data não pode ser futura';
         return undefined;
         
-      case 'interessados':
-        if (!value.trim()) return 'Interessados são obrigatórios';
-        if (value.length < 5) return 'Descreva os interessados com mais detalhes';
+      case 'interessado':
+        if (!value.trim()) return 'Interessado é obrigatório';
+        if (value.length < 5) return 'Descreva o interessado com mais detalhes';
+        return undefined;
+
+      case 'situacao':
+        if (!value.trim()) return 'Situação é obrigatória';
+        return undefined;
+
+      case 'orgao_autuador':
+        if (!value.trim()) return 'Órgão autuador é obrigatório';
         return undefined;
         
       case 'url_processo':
-        if (!value.trim()) return 'URL do processo é obrigatória';
-        if (!value.includes('sei.rj.gov.br')) {
+        if (value && !value.includes('sei.rj.gov.br')) {
           return 'URL deve ser do SEI-RJ (sei.rj.gov.br)';
         }
         return undefined;
@@ -233,7 +275,7 @@ const NovoProcesso: React.FC = () => {
     let isValid = true;
     
     (Object.keys(formData) as Array<keyof FormData>).forEach(field => {
-      if (field !== 'observacao_usuario') { // Campo opcional
+      if (field !== 'url_processo') { // Campo opcional
         const error = validateField(field, formData[field] || '');
         if (error) {
           newErrors[field] = error;
@@ -259,15 +301,15 @@ const NovoProcesso: React.FC = () => {
   };
 
   // Upload de documentos
-  const handleFileUpload = (files: FileList | null) => {
-    if (!files) return;
+  const handleFileUpload = async (files: FileList | null) => {
+    if (!files || !processoIdCriado) return;
     
-    Array.from(files).forEach(file => {
+    for (const file of Array.from(files)) {
       const novoDocumento: DocumentoUpload = {
         id: Math.random().toString(36).substr(2, 9),
         nome: file.name,
         arquivo: file,
-        tipo: file.type,
+        tipo: file.type || 'Documento',
         tamanho: (file.size / 1024 / 1024).toFixed(2) + ' MB',
         status: 'pendente',
         progresso: 0
@@ -275,32 +317,32 @@ const NovoProcesso: React.FC = () => {
       
       setDocumentos(prev => [...prev, novoDocumento]);
       
-      // Simular upload
-      setTimeout(() => {
+      try {
+        // Atualizar status para uploading
         setDocumentos(prev => prev.map(doc => 
-          doc.id === novoDocumento.id ? { ...doc, status: 'uploading' } : doc
+          doc.id === novoDocumento.id ? { ...doc, status: 'uploading', progresso: 10 } : doc
         ));
         
-        // Progresso do upload
-        let progresso = 0;
-        const interval = setInterval(() => {
-          progresso += Math.random() * 20;
-          if (progresso >= 100) {
-            progresso = 100;
-            clearInterval(interval);
-            setDocumentos(prev => prev.map(doc => 
-              doc.id === novoDocumento.id 
-                ? { ...doc, status: 'concluido', progresso: 100 } 
-                : doc
-            ));
-          } else {
-            setDocumentos(prev => prev.map(doc => 
-              doc.id === novoDocumento.id ? { ...doc, progresso } : doc
-            ));
-          }
-        }, 200);
-      }, 500);
-    });
+        // Upload real via API
+        await apiService.uploadDocumento(processoIdCriado, file, novoDocumento.tipo);
+        
+        // Sucesso no upload
+        setDocumentos(prev => prev.map(doc => 
+          doc.id === novoDocumento.id 
+            ? { ...doc, status: 'concluido', progresso: 100 } 
+            : doc
+        ));
+        
+      } catch (error) {
+        console.error('Erro no upload:', error);
+        // Erro no upload
+        setDocumentos(prev => prev.map(doc => 
+          doc.id === novoDocumento.id 
+            ? { ...doc, status: 'erro', progresso: 0 } 
+            : doc
+        ));
+      }
+    }
   };
 
   // Remover documento
@@ -332,32 +374,26 @@ const NovoProcesso: React.FC = () => {
       return;
     }
     
-    setIsSubmitting(true);
-    
     try {
-      // Simular criação do processo
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Mapear dados do formulário para o formato do backend
+      const processoData: ProcessoCreate = {
+        numero: formData.numero,
+        tipo: formData.tipo,
+        assunto: formData.assunto,
+        interessado: formData.interessado, // Singular
+        situacao: formData.situacao,
+        data_autuacao: formData.data_autuacao, // Usar data_autuacao
+        orgao_autuador: formData.orgao_autuador,
+        url_processo: formData.url_processo,
+      };
+
+      const resultado = await createProcessoMutation.mutateAsync(processoData);
       
-      console.log('Criando processo:', {
-        ...formData,
-        documentos: documentos.map(doc => ({
-          nome: doc.nome,
-          tipo: doc.tipo,
-          tamanho: doc.tamanho
-        }))
-      });
-      
-      setSubmitSuccess(true);
-      
-      // Redirecionar após sucesso
-      setTimeout(() => {
-        navigate('/processos');
-      }, 2000);
+      // Redirecionar para o processo criado
+      navigate(`/processos/${resultado.id}`);
       
     } catch (error) {
       console.error('Erro ao criar processo:', error);
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -365,26 +401,26 @@ const NovoProcesso: React.FC = () => {
   const handleTipoChange = (tipo: string) => {
     setFormData(prev => ({ ...prev, tipo }));
     
-    // Sugerir interessados baseado no tipo
+    // Sugerir interessado baseado no tipo
     if (tipo.includes('SEFAZ')) {
       setFormData(prev => ({ 
         ...prev, 
-        interessados: prev.interessados || 'Secretaria de Estado de Fazenda - SEFAZ/RJ'
+        interessado: prev.interessado || 'Secretaria de Estado de Fazenda - SEFAZ/RJ'
       }));
     } else if (tipo.includes('Licitação')) {
       setFormData(prev => ({ 
         ...prev, 
-        interessados: prev.interessados || 'Comissão Permanente de Licitação'
+        interessado: prev.interessado || 'Comissão Permanente de Licitação'
       }));
     } else if (tipo.includes('PAD')) {
       setFormData(prev => ({ 
         ...prev, 
-        interessados: prev.interessados || 'Corregedoria Geral do Estado'
+        interessado: prev.interessado || 'Corregedoria Geral do Estado'
       }));
     }
   };
 
-  if (submitSuccess) {
+  if (createProcessoMutation.isSuccess) {
     return (
       <Box display="flex" flexDirection="column" alignItems="center" py={8}>
         <CheckCircle sx={{ fontSize: 64, color: 'success.main', mb: 2 }} />
@@ -393,7 +429,7 @@ const NovoProcesso: React.FC = () => {
         </Typography>
         <Typography variant="body1" color="text.secondary" textAlign="center" mb={3}>
           O processo <strong>{formData.numero}</strong> foi criado e está sendo processado.
-          Você será redirecionado para a lista de processos.
+          Você será redirecionado para os detalhes do processo.
         </Typography>
         <CircularProgress />
       </Box>
@@ -418,6 +454,13 @@ const NovoProcesso: React.FC = () => {
           </Box>
         </Box>
       </Box>
+
+      {/* Mostrar erro se houver */}
+      {createProcessoMutation.isError && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          Erro ao criar processo: {createProcessoMutation.error?.message}
+        </Alert>
+      )}
 
       {/* Stepper */}
       <Paper sx={{ mb: 3 }}>
@@ -476,14 +519,28 @@ const NovoProcesso: React.FC = () => {
                 </FormControl>
               </Grid>
 
+              <Grid item xs={12}>
+                <TextField
+                  label="Assunto do Processo *"
+                  value={formData.assunto}
+                  onChange={(e) => handleFieldChange('assunto', e.target.value)}
+                  error={!!errors.assunto}
+                  helperText={errors.assunto || 'Descreva brevemente o assunto do processo'}
+                  fullWidth
+                  multiline
+                  rows={3}
+                  placeholder="Ex: Solicitação de orçamento para aquisição de equipamentos de TI..."
+                />
+              </Grid>
+
               <Grid item xs={12} md={6}>
                 <TextField
-                  label="Data de Geração *"
+                  label="Data de Autuação *"
                   type="date"
-                  value={formData.data_geracao}
-                  onChange={(e) => handleFieldChange('data_geracao', e.target.value)}
-                  error={!!errors.data_geracao}
-                  helperText={errors.data_geracao}
+                  value={formData.data_autuacao}
+                  onChange={(e) => handleFieldChange('data_autuacao', e.target.value)}
+                  error={!!errors.data_autuacao}
+                  helperText={errors.data_autuacao}
                   fullWidth
                   InputLabelProps={{ shrink: true }}
                   InputProps={{
@@ -493,6 +550,54 @@ const NovoProcesso: React.FC = () => {
               </Grid>
 
               <Grid item xs={12} md={6}>
+                <FormControl fullWidth error={!!errors.situacao}>
+                  <InputLabel>Situação *</InputLabel>
+                  <Select
+                    value={formData.situacao}
+                    onChange={(e) => handleFieldChange('situacao', e.target.value)}
+                  >
+                    {situacoesProcesso.map((situacao) => (
+                      <MenuItem key={situacao} value={situacao}>
+                        {situacao}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  <FormHelperText>{errors.situacao}</FormHelperText>
+                </FormControl>
+              </Grid>
+
+              <Grid item xs={12}>
+                <TextField
+                  label="Interessado *"
+                  value={formData.interessado}
+                  onChange={(e) => handleFieldChange('interessado', e.target.value)}
+                  error={!!errors.interessado}
+                  helperText={errors.interessado || 'Nome do órgão, pessoa ou entidade interessada'}
+                  fullWidth
+                  InputProps={{
+                    startAdornment: <Person sx={{ mr: 1, color: 'text.secondary' }} />
+                  }}
+                />
+              </Grid>
+
+              <Grid item xs={12}>
+                <FormControl fullWidth error={!!errors.orgao_autuador}>
+                  <InputLabel>Órgão Autuador *</InputLabel>
+                  <Select
+                    value={formData.orgao_autuador}
+                    onChange={(e) => handleFieldChange('orgao_autuador', e.target.value)}
+                  >
+                    {orgaosAutuadores.map((orgao) => (
+                      <MenuItem key={orgao} value={orgao}>
+                        {orgao}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  <FormHelperText>{errors.orgao_autuador}</FormHelperText>
+                </FormControl>
+              </Grid>
+
+              <Grid item xs={12}>
                 <FormControlLabel
                   control={
                     <Checkbox
@@ -500,17 +605,17 @@ const NovoProcesso: React.FC = () => {
                       onChange={(e) => setAutoComplete(e.target.checked)}
                     />
                   }
-                  label="Auto-completar dados da URL"
+                  label="Auto-completar dados a partir da URL do SEI"
                 />
               </Grid>
 
               <Grid item xs={12}>
                 <TextField
-                  label="URL do Processo no SEI *"
+                  label="URL do Processo no SEI"
                   value={formData.url_processo}
                   onChange={(e) => handleFieldChange('url_processo', e.target.value)}
                   error={!!errors.url_processo}
-                  helperText={errors.url_processo}
+                  helperText={errors.url_processo || 'URL opcional do processo no SEI'}
                   fullWidth
                   placeholder="https://sei.rj.gov.br/sei/controlador.php?acao=protocolo_visualizar&id_protocolo=..."
                   InputProps={{
@@ -518,42 +623,10 @@ const NovoProcesso: React.FC = () => {
                     endAdornment: verificandoUrl ? (
                       <CircularProgress size={20} />
                     ) : urlValida === true ? (
-                      <CheckCircle sx={{ color: 'success.main' }} />
+                      <CheckCircle color="success" />
                     ) : urlValida === false ? (
-                      <Error sx={{ color: 'error.main' }} />
+                      <Error color="error" />
                     ) : null
-                  }}
-                />
-              </Grid>
-
-              <Grid item xs={12}>
-                <TextField
-                  label="Interessados *"
-                  value={formData.interessados}
-                  onChange={(e) => handleFieldChange('interessados', e.target.value)}
-                  error={!!errors.interessados}
-                  helperText={errors.interessados || 'Ex: Secretaria de Estado de Fazenda - SEFAZ/RJ'}
-                  fullWidth
-                  multiline
-                  rows={2}
-                  placeholder="Descreva os órgãos ou pessoas interessadas no processo"
-                  InputProps={{
-                    startAdornment: <Person sx={{ mr: 1, color: 'text.secondary', alignSelf: 'flex-start', mt: 1 }} />
-                  }}
-                />
-              </Grid>
-
-              <Grid item xs={12}>
-                <TextField
-                  label="Observação do Usuário"
-                  value={formData.observacao_usuario}
-                  onChange={(e) => handleFieldChange('observacao_usuario', e.target.value)}
-                  fullWidth
-                  multiline
-                  rows={3}
-                  placeholder="Adicione observações, contexto ou informações adicionais sobre o processo (opcional)"
-                  InputProps={{
-                    startAdornment: <Description sx={{ mr: 1, color: 'text.secondary', alignSelf: 'flex-start', mt: 1 }} />
                   }}
                 />
               </Grid>
@@ -561,106 +634,84 @@ const NovoProcesso: React.FC = () => {
           </Box>
         )}
 
-        {/* Etapa 2: Upload de Documentos */}
+        {/* Etapa 2: Documentos */}
         {activeStep === 1 && (
           <Box>
             <Typography variant="h6" gutterBottom>
-              Documentos do Processo (Opcional)
+              Documentos (Opcional)
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              Você pode adicionar documentos relacionados ao processo. Esta etapa é opcional e pode ser feita posteriormente.
+              Você pode adicionar documentos relacionados ao processo. Esta etapa é opcional.
             </Typography>
 
-            {/* Área de Upload */}
-            <Card 
-              variant="outlined" 
-              sx={{ 
-                mb: 3, 
-                border: dragOver ? '2px dashed' : '1px solid',
-                borderColor: dragOver ? 'primary.main' : 'divider',
-                bgcolor: dragOver ? 'action.hover' : 'background.paper'
+            {/* Upload area */}
+            <Paper
+              sx={{
+                p: 3,
+                mb: 3,
+                border: '2px dashed',
+                borderColor: dragOver ? 'primary.main' : 'grey.300',
+                backgroundColor: dragOver ? 'primary.50' : 'grey.50',
+                textAlign: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
               }}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
+              onClick={() => document.getElementById('file-input')?.click()}
             >
-              <CardContent sx={{ textAlign: 'center', py: 6 }}>
-                <CloudUpload sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-                <Typography variant="h6" gutterBottom>
-                  Arraste arquivos aqui ou clique para selecionar
-                </Typography>
-                <Typography variant="body2" color="text.secondary" paragraph>
-                  Formatos suportados: PDF, DOC, DOCX, XLS, XLSX
-                </Typography>
-                <Button
-                  variant="contained"
-                  component="label"
-                  startIcon={<FileUpload />}
-                >
-                  Selecionar Arquivos
-                  <input
-                    type="file"
-                    hidden
-                    multiple
-                    accept=".pdf,.doc,.docx,.xls,.xlsx"
-                    onChange={(e) => handleFileUpload(e.target.files)}
-                  />
-                </Button>
-              </CardContent>
-            </Card>
+              <CloudUpload sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
+              <Typography variant="h6" gutterBottom>
+                Arraste arquivos aqui ou clique para selecionar
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Formatos aceitos: PDF, DOC, DOCX, XLS, XLSX
+              </Typography>
+              <input
+                id="file-input"
+                type="file"
+                multiple
+                accept=".pdf,.doc,.docx,.xls,.xlsx"
+                style={{ display: 'none' }}
+                onChange={(e) => handleFileUpload(e.target.files)}
+              />
+            </Paper>
 
-            {/* Lista de Documentos */}
+            {/* Lista de documentos */}
             {documentos.length > 0 && (
-              <Card variant="outlined">
-                <CardContent>
-                  <Typography variant="subtitle1" gutterBottom>
-                    Documentos Adicionados ({documentos.length})
-                  </Typography>
-                  <List>
-                    {documentos.map((doc) => (
-                      <ListItem key={doc.id}>
-                        <ListItemIcon>
-                          {doc.status === 'concluido' ? (
-                            <CheckCircle color="success" />
-                          ) : doc.status === 'erro' ? (
-                            <Error color="error" />
-                          ) : doc.status === 'uploading' ? (
-                            <CircularProgress size={24} />
-                          ) : (
-                            <Description color="primary" />
-                          )}
-                        </ListItemIcon>
-                        <ListItemText
-                          primary={doc.nome}
-                          secondary={
-                            <Box>
-                              <Typography variant="body2" color="text.secondary">
-                                {doc.tamanho} • {doc.tipo}
-                              </Typography>
-                              {doc.status === 'uploading' && (
-                                <LinearProgress 
-                                  variant="determinate" 
-                                  value={doc.progresso} 
-                                  sx={{ mt: 1 }}
-                                />
-                              )}
-                            </Box>
-                          }
-                        />
-                        <ListItemSecondaryAction>
-                          <IconButton 
-                            edge="end" 
-                            onClick={() => removerDocumento(doc.id)}
-                            disabled={doc.status === 'uploading'}
-                          >
-                            <Delete />
-                          </IconButton>
-                        </ListItemSecondaryAction>
-                      </ListItem>
-                    ))}
-                  </List>
-                </CardContent>
-              </Card>
+              <Box>
+                <Typography variant="subtitle1" gutterBottom>
+                  Documentos Adicionados ({documentos.length})
+                </Typography>
+                <List>
+                  {documentos.map((doc) => (
+                    <ListItem key={doc.id}>
+                      <ListItemIcon>
+                        <Description color="primary" />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={doc.nome}
+                        secondary={`${doc.tamanho} • ${doc.status}`}
+                      />
+                      {doc.status === 'uploading' && (
+                        <Box sx={{ width: 100, mr: 2 }}>
+                          <LinearProgress variant="determinate" value={doc.progresso} />
+                        </Box>
+                      )}
+                      <ListItemSecondaryAction>
+                        <IconButton
+                          edge="end"
+                          onClick={() => removerDocumento(doc.id)}
+                          disabled={doc.status === 'uploading'}
+                        >
+                          <Delete />
+                        </IconButton>
+                      </ListItemSecondaryAction>
+                    </ListItem>
+                  ))}
+                </List>
+              </Box>
             )}
           </Box>
         )}
@@ -672,116 +723,83 @@ const NovoProcesso: React.FC = () => {
               Revisão e Confirmação
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              Revise todas as informações antes de criar o processo. Após a criação, algumas informações não poderão ser alteradas.
+              Revise todas as informações antes de criar o processo.
             </Typography>
 
             <Grid container spacing={3}>
-              <Grid item xs={12} md={8}>
-                <Card variant="outlined">
-                  <CardContent>
-                    <Typography variant="subtitle1" gutterBottom>
-                      Informações do Processo
+              <Grid item xs={12} md={6}>
+                <Paper sx={{ p: 2 }}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    Informações do Processo
+                  </Typography>
+                  <Divider sx={{ mb: 2 }} />
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">
+                      <strong>Número:</strong> {formData.numero}
                     </Typography>
-                    <Divider sx={{ mb: 2 }} />
-                    
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} sm={6}>
-                        <Typography variant="body2" color="text.secondary">Número:</Typography>
-                        <Typography variant="body1" fontWeight="bold">{formData.numero}</Typography>
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <Typography variant="body2" color="text.secondary">Tipo:</Typography>
-                        <Chip label={formData.tipo} size="small" color="primary" />
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <Typography variant="body2" color="text.secondary">Data de Geração:</Typography>
-                        <Typography variant="body1">{new Date(formData.data_geracao).toLocaleDateString('pt-BR')}</Typography>
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <Typography variant="body2" color="text.secondary">Status URL:</Typography>
-                        <Chip 
-                          label={urlValida ? "URL Válida" : "URL Não Verificada"} 
-                          size="small" 
-                          color={urlValida ? "success" : "warning"} 
-                        />
-                      </Grid>
-                      <Grid item xs={12}>
-                        <Typography variant="body2" color="text.secondary">Interessados:</Typography>
-                        <Typography variant="body1">{formData.interessados}</Typography>
-                      </Grid>
-                      {formData.observacao_usuario && (
-                        <Grid item xs={12}>
-                          <Typography variant="body2" color="text.secondary">Observação:</Typography>
-                          <Typography variant="body1">{formData.observacao_usuario}</Typography>
-                        </Grid>
-                      )}
-                    </Grid>
-                  </CardContent>
-                </Card>
-
-                {documentos.length > 0 && (
-                  <Card variant="outlined" sx={{ mt: 2 }}>
-                    <CardContent>
-                      <Typography variant="subtitle1" gutterBottom>
-                        Documentos ({documentos.length})
+                    <Typography variant="body2" color="text.secondary">
+                      <strong>Tipo:</strong> {formData.tipo}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      <strong>Assunto:</strong> {formData.assunto}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      <strong>Interessado:</strong> {formData.interessado}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      <strong>Situação:</strong> {formData.situacao}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      <strong>Data Autuação:</strong> {new Date(formData.data_autuacao).toLocaleDateString('pt-BR')}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      <strong>Órgão Autuador:</strong> {formData.orgao_autuador}
+                    </Typography>
+                    {formData.url_processo && (
+                      <Typography variant="body2" color="text.secondary">
+                        <strong>URL SEI:</strong> {formData.url_processo}
                       </Typography>
-                      <Divider sx={{ mb: 2 }} />
-                      {documentos.map((doc) => (
-                        <Chip 
-                          key={doc.id}
-                          label={`${doc.nome} (${doc.tamanho})`}
-                          size="small"
-                          color={doc.status === 'concluido' ? 'success' : 'default'}
-                          sx={{ mr: 1, mb: 1 }}
-                        />
-                      ))}
-                    </CardContent>
-                  </Card>
-                )}
+                    )}
+                  </Box>
+                </Paper>
               </Grid>
 
-              <Grid item xs={12} md={4}>
-                <Card variant="outlined">
-                  <CardContent>
-                    <Typography variant="subtitle1" gutterBottom>
-                      Próximos Passos
-                    </Typography>
+              <Grid item xs={12} md={6}>
+                <Paper sx={{ p: 2 }}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    Documentos
+                  </Typography>
+                  <Divider sx={{ mb: 2 }} />
+                  {documentos.length > 0 ? (
                     <List dense>
-                      <ListItem>
-                        <ListItemIcon><Assignment fontSize="small" /></ListItemIcon>
-                        <ListItemText 
-                          primary="Processo será criado"
-                          secondary="Informações básicas registradas"
-                        />
-                      </ListItem>
-                      <ListItem>
-                        <ListItemIcon><Psychology fontSize="small" /></ListItemIcon>
-                        <ListItemText 
-                          primary="Análise automática"
-                          secondary="IA analisará os documentos"
-                        />
-                      </ListItem>
-                      <ListItem>
-                        <ListItemIcon><AutoAwesome fontSize="small" /></ListItemIcon>
-                        <ListItemText 
-                          primary="Pronto para uso"
-                          secondary="Disponível na lista de processos"
-                        />
-                      </ListItem>
+                      {documentos.map((doc) => (
+                        <ListItem key={doc.id}>
+                          <ListItemIcon>
+                            <Description fontSize="small" />
+                          </ListItemIcon>
+                          <ListItemText
+                            primary={doc.nome}
+                            secondary={doc.tamanho}
+                          />
+                        </ListItem>
+                      ))}
                     </List>
-                  </CardContent>
-                </Card>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      Nenhum documento adicionado
+                    </Typography>
+                  )}
+                </Paper>
               </Grid>
             </Grid>
           </Box>
         )}
 
-        {/* Botões de Navegação */}
+        {/* Botões de navegação */}
         <Box display="flex" justifyContent="space-between" mt={4}>
           <Button
             onClick={handleBack}
             disabled={activeStep === 0}
-            startIcon={<ArrowBack />}
           >
             Voltar
           </Button>
@@ -798,10 +816,10 @@ const NovoProcesso: React.FC = () => {
               <Button
                 variant="contained"
                 onClick={handleSubmit}
-                disabled={isSubmitting}
-                startIcon={isSubmitting ? <CircularProgress size={20} /> : <Save />}
+                disabled={createProcessoMutation.isPending}
+                startIcon={createProcessoMutation.isPending ? <CircularProgress size={20} /> : <Send />}
               >
-                {isSubmitting ? 'Criando...' : 'Criar Processo'}
+                {createProcessoMutation.isPending ? 'Criando...' : 'Criar Processo'}
               </Button>
             )}
           </Box>

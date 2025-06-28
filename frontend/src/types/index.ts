@@ -5,19 +5,19 @@
 // Status possíveis para documentos e análises
 export type StatusType = 'concluido' | 'pendente' | 'erro' | 'processando';
 
-// Removido: SituacaoProcesso e TipoProcesso - não fazem parte da especificação SEI
-
 // ============================================================================
-// PROCESSO (ALINHADO COM ESPECIFICAÇÃO SEI)
+// PROCESSO (ALINHADO COM BACKEND API_SCHEMAS.PY)
 // ============================================================================
 export interface Processo {
   id: number;
   numero: string;                     // SEI-070002/013015/2024 (webscrape)
   tipo: string;                       // Webscrape - tipo do processo
-  data_geracao: string;               // Webscrape - data de geração
-  interessados: string;               // Webscrape - interessados
-  url_processo: string;               // Informado pelo usuário
-  observacao_usuario?: string;        // Opcional - observação do usuário
+  assunto: string;                    // Assunto do processo (backend usa 'assunto')
+  interessado: string;                // Webscrape - interessado (singular no backend)
+  situacao: string;                   // Situação atual do processo
+  data_autuacao: string;              // Data de autuação (backend usa data_autuacao)
+  orgao_autuador: string;             // Órgão autuador
+  url_processo?: string;              // Informado pelo usuário
   hash_conteudo?: string;             // Sistema - hash para mudanças
   created_at: string;
   updated_at: string;                 // Data última atualização automática
@@ -26,68 +26,77 @@ export interface Processo {
   documentos?: Documento[];
   andamentos?: Andamento[];
   
-  // Métricas calculadas
+  // Métricas calculadas (do backend)
   total_documentos?: number;
+  total_andamentos?: number;
   documentos_analisados?: number;
-  custo_total_llm?: number;
-  localizacao_atual?: string;        // Unidade atual do processo
 }
 
 export interface ProcessoCreate {
   numero: string;
   tipo: string;
-  data_geracao: string;
-  interessados: string;
-  url_processo: string;
-  observacao_usuario?: string;
+  assunto: string;                    // Obrigatório no backend
+  interessado: string;                // Singular
+  situacao: string;
+  data_autuacao: string;              // Usar data_autuacao
+  orgao_autuador: string;
+  url_processo?: string;
 }
 
 export interface ProcessoUpdate {
   tipo?: string;
-  data_geracao?: string;
-  interessados?: string;
+  assunto?: string;                   // Backend usa 'assunto'
+  interessado?: string;               // Singular
+  situacao?: string;
+  orgao_autuador?: string;
   url_processo?: string;
-  observacao_usuario?: string;
 }
 
 // ============================================================================
-// DOCUMENTO (ALINHADO COM ESPECIFICAÇÃO SEI)
+// DOCUMENTO (ALINHADO COM BACKEND API_SCHEMAS.PY) 
 // ============================================================================
 export interface Documento {
   id: number;
   processo_id: number;
-  numero_documento: string;           // Webscrape - número do documento
-  url_documento?: string;             // Webscrape - link para documento
-  tipo: string;                       // Webscrape - tipo do documento
-  data_documento?: string;            // Webscrape - data do documento
-  data_inclusao?: string;             // Webscrape - data de inclusão
-  unidade?: string;                   // Webscrape - unidade
-  assunto_documento?: string;         // LLM - assunto gerado pelo LLM
+  numero: string;                     // Backend usa 'numero' (não numero_documento)
+  url_documento?: string;             // URL do documento
+  tipo: string;                       // Tipo do documento
+  data_documento: string;             // Data do documento (obrigatório no backend)
+  descricao: string;                  // Backend usa 'descricao' (não assunto_documento)
   
-  // Campos técnicos
-  arquivo_path?: string;              // Caminho local do arquivo
-  downloaded?: boolean;               // Se foi baixado
-  detalhamento_status: StatusType;    // Status da análise LLM
+  // Campos técnicos do backend
+  tamanho_arquivo?: number;           // Tamanho do arquivo
+  hash_arquivo?: string;              // Hash do arquivo
+  caminho_arquivo?: string;           // Caminho do arquivo
+  
+  // Campos de análise LLM
+  detalhamento_status?: string;       // Status da análise LLM
+  detalhamento_texto?: string;        // Texto da análise
   detalhamento_modelo?: string;       // Modelo LLM usado
   detalhamento_tokens?: number;       // Tokens utilizados
   detalhamento_data?: string;         // Data da análise
+  
   created_at: string;
   updated_at: string;
   
-  // Relacionamentos
-  processo?: Processo;
+  // Relacionamentos opcionais
   tags?: Tag[];
   entidades?: Entidade[];
 }
 
 export interface DocumentoCreate {
   processo_id: number;
-  numero_documento: string;
+  numero: string;                     // Usar 'numero' (não numero_documento)
   url_documento?: string;
   tipo: string;
-  data_documento?: string;
-  data_inclusao?: string;
-  unidade?: string;
+  data_documento: string;             // Obrigatório no backend
+  descricao: string;                  // Usar 'descricao' (não assunto_documento)
+}
+
+export interface DocumentoUpdate {
+  tipo?: string;
+  descricao?: string;                 // Usar 'descricao'
+  detalhamento_status?: string;
 }
 
 // ============================================================================
@@ -96,10 +105,9 @@ export interface DocumentoCreate {
 export interface Andamento {
   id: number;
   processo_id: number;
-  data_hora: string;                  // Webscrape - data/hora
-  unidade: string;                    // Webscrape - unidade
-  descricao: string;                  // Webscrape - descrição
-  localizacao_atual: boolean;         // Sistema - se é localização atual
+  data_hora: string;                  // Backend usa data_hora
+  descricao?: string;                 // Descrição do andamento (opcional)
+  unidade?: string;                   // Unidade
   created_at: string;
 }
 
@@ -155,69 +163,57 @@ export interface EstatisticasGerais {
 }
 
 export interface EstatisticasProcessos {
-  total: number;
-  por_tipo: Record<string, number>;        // Tipos dinâmicos do webscrape
-  por_mes: Array<{
-    mes: string;
-    total: number;
-  }>;
+  total_processos: number;
+  por_tipo: Record<string, number>;
+  por_situacao: Record<string, number>;
+  por_orgao: Record<string, number>;
+  processos_recentes: number;
+  media_documentos_por_processo: number;
 }
 
 export interface EstatisticasDocumentos {
-  total: number;
-  analisados: number;
-  pendentes: number;
-  com_erro: number;
+  total_documentos: number;
   por_tipo: Record<string, number>;
-  tamanho_medio: number;
+  por_status_analise: Record<string, number>;
+  documentos_analisados: number;
+  documentos_nao_analisados: number;
+  tamanho_medio_arquivo: number;
 }
 
 export interface EstatisticasLLM {
-  total_analises: number;
-  analises_sucesso: number;
-  analises_erro: number;
-  tokens_total: number;
-  custo_total: number;
-  tempo_medio: number;
-  por_modelo: Record<string, {
-    total: number;
-    sucesso: number;
-    custo: number;
-  }>;
+  total_documents_processed: number;
+  successful_analyses: number;
+  failed_analyses: number;
+  total_tokens_used: number;
+  total_cost_usd: number;
+  average_tokens_per_document: number;
+  average_cost_per_document: number;
+  most_used_model?: string;
+  last_analysis_at?: string;
+  processing_percentage: number;
 }
 
 // ============================================================================
 // CONFIGURAÇÕES LLM
 // ============================================================================
 export interface ConfiguracaoLLM {
-  id: number;
   provider: string;
-  modelo: string;
-  api_key?: string;
-  temperatura: number;
+  model: string;
   max_tokens: number;
+  temperature: number;
   chunk_size: number;
-  max_chunks: number;
-  timeout: number;
-  custo_input_1k: number;
-  custo_output_1k: number;
-  ativo: boolean;
-  created_at: string;
-  updated_at: string;
+  max_chunks_per_document: number;
+  cost_per_1k_input_tokens: number;
+  cost_per_1k_output_tokens: number;
+  timeout_seconds: number;
 }
 
 export interface ConfiguracaoLLMUpdate {
-  provider?: string;
-  modelo?: string;
-  api_key?: string;
-  temperatura?: number;
   max_tokens?: number;
+  temperature?: number;
   chunk_size?: number;
-  max_chunks?: number;
-  timeout?: number;
-  custo_input_1k?: number;
-  custo_output_1k?: number;
-  ativo?: boolean;
+  max_chunks_per_document?: number;
+  timeout_seconds?: number;
 }
 
 // ============================================================================
@@ -257,7 +253,7 @@ export interface ColetaCreate {
 }
 
 // ============================================================================
-// PAGINAÇÃO E FILTROS
+// PAGINAÇÃO E FILTROS (ALINHADOS COM BACKEND)
 // ============================================================================
 export interface PaginationParams {
   page?: number;
@@ -274,21 +270,28 @@ export interface PaginatedResponse<T> {
   pages: number;
 }
 
+// Filtros alinhados com ProcessoSearchParams do backend
 export interface ProcessoFilters extends PaginationParams {
   numero?: string;
-  tipo?: string;                    // Filtro por tipo dinâmico
-  interessados?: string;            // Ajustado para corresponder ao campo
-  data_inicio?: string;
+  tipo?: string;
+  assunto?: string;                   // Backend usa 'assunto'
+  interessado?: string;               // Singular (backend usa 'interessado')
+  situacao?: string;
+  orgao_autuador?: string;
+  data_inicio?: string;               // Backend usa data_inicio/data_fim
   data_fim?: string;
 }
 
+// Filtros alinhados com DocumentoSearchParams do backend
 export interface DocumentoFilters extends PaginationParams {
   processo_id?: number;
   tipo?: string;
-  status_analise?: StatusType;
-  busca_conteudo?: string;
+  numero?: string;                    // Backend usa 'numero'
+  descricao?: string;                 // Backend usa 'descricao'
+  status_analise?: string;
   data_inicio?: string;
   data_fim?: string;
+  q?: string;                         // Backend usa 'q' para busca de conteúdo
 }
 
 // ============================================================================
@@ -308,14 +311,12 @@ export interface Notificacao {
 }
 
 export interface HealthCheck {
-  status: 'ok' | 'error';
+  status: string;
+  database: string;
+  llm_service?: string;
   timestamp: string;
-  services: {
-    database: 'ok' | 'error';
-    llm: 'ok' | 'error';
-    storage: 'ok' | 'error';
-  };
   version: string;
+  uptime_seconds?: number;
 }
 
 // ============================================================================
@@ -411,10 +412,12 @@ export interface NovoProcessoForm {
 export interface ProcessoForm {
   numero: string;
   tipo: string;
-  data_geracao: string;
-  interessados: string;
+  assunto: string;                    // Usar 'assunto'
+  interessado: string;                // Singular
+  situacao: string;
+  data_autuacao: string;              // Usar data_autuacao
+  orgao_autuador: string;
   url_processo: string;
-  observacao_usuario: string;
 }
 
 export interface ConfiguracaoForm {
