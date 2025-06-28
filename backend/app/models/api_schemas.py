@@ -298,3 +298,47 @@ class SystemInfoResponse(BaseModel):
 # ===== VALIDADORES PERSONALIZADOS =====
 
 # Aplicar validador aos schemas relevantes - será implementado em cada classe conforme necessário 
+
+# Novos schemas para preview de scraping
+class ProcessoInfoPreview(BaseModel):
+    numero: str
+    tipo: str
+    data_autuacao: str  # formato "DD/MM/AAAA"
+    interessado: Optional[str] = None
+
+class ProtocoloInfoPreview(BaseModel):
+    numero: str
+    tipo: str
+    data: str  # formato "DD/MM/AAAA"
+    data_inclusao: str  # formato "DD/MM/AAAA"
+    unidade: str
+    url: Optional[str] = None
+
+class AndamentoInfoPreview(BaseModel):
+    data_hora: str  # formato "DD/MM/AAAA HH:MM"
+    unidade: str
+    descricao: str
+
+class ScrapingPreviewResponse(BaseModel):
+    autuacao: ProcessoInfoPreview
+    protocolos: List[ProtocoloInfoPreview]
+    andamentos: List[AndamentoInfoPreview]
+    url_original: str
+    total_protocolos: int = Field(description="Total de protocolos encontrados")
+    total_andamentos: int = Field(description="Total de andamentos encontrados")
+
+class ScrapingPreviewRequest(BaseModel):
+    url: str = Field(description="URL do processo no SEI-RJ")
+
+class SalvarProcessoCompletoRequest(BaseModel):
+    url: str
+    autuacao: ProcessoInfoPreview
+    protocolos: List[ProtocoloInfoPreview]
+    andamentos: List[AndamentoInfoPreview]
+
+class SalvarProcessoCompletoResponse(BaseModel):
+    processo_id: int
+    protocolos_salvos: int
+    andamentos_salvos: int
+    sucesso: bool
+    mensagem: str 

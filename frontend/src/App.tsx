@@ -10,6 +10,7 @@ import DocumentosList from './pages/DocumentosList';
 import DocumentoDetails from './pages/DocumentoDetails';
 import LLMDashboard from './pages/LLMDashboard';
 import NovoProcesso from './pages/NovoProcesso';
+import NovoProcessoSEI from './pages/NovoProcessoSEI';
 import Configuracoes from './pages/Configuracoes';
 import NotFound from './pages/NotFound';
 
@@ -46,6 +47,9 @@ const App: React.FC = () => {
           <Route path="novo-processo" element={<NovoProcesso />} />
           <Route path="novo-processo/manual" element={<NovoProcesso />} />
           <Route path="novo-processo/status" element={<NovoProcesso />} />
+          
+          {/* Importar Processo SEI */}
+          <Route path="processos/importar" element={<NovoProcessoSEI />} />
           
           {/* Configurações */}
           <Route path="configuracoes" element={<Configuracoes />} />

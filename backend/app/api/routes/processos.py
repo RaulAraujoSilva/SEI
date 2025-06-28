@@ -12,11 +12,19 @@ from app.models.processo import Processo, Documento, Andamento
 from app.models.api_schemas import (
     ProcessoCreate, ProcessoUpdate, ProcessoResponse, ProcessoStatistics,
     PaginatedProcessos, ProcessoSearchParams, ResponseMessage,
-    PaginatedAndamentos, AndamentoResponse
+    PaginatedAndamentos, AndamentoResponse,
+    ProcessoListResponse, ScrapingPreviewRequest, ScrapingPreviewResponse,
+    SalvarProcessoCompletoRequest, SalvarProcessoCompletoResponse
 )
 from app.models.schemas import AndamentoCreate
+from app.services.persistence import ProcessoPersistenceService
+from app.services.scraping_preview import ScrapingPreviewService
 
 router = APIRouter()
+
+# Inicializar services
+persistence_service = ProcessoPersistenceService()
+scraping_preview_service = ScrapingPreviewService()
 
 # ===== ENDPOINTS CRUD =====
 
@@ -529,4 +537,58 @@ async def delete_andamento(
     db.delete(andamento)
     db.commit()
     
-    return Response(status_code=204) 
+    return Response(status_code=204)
+
+@router.post("/scrape-preview", response_model=ScrapingPreviewResponse)
+async def preview_scraping(request: ScrapingPreviewRequest):
+    """
+    Executa scraping de processo para preview sem salvar no banco.
+    
+    - **url**: URL do processo no SEI-RJ
+    
+    Retorna todos os dados extraídos para visualização antes de salvar.
+    """
+    try:
+        logger.info(f"Preview de scraping solicitado para: {request.url}")
+        
+        # Executar preview
+        resultado = scraping_preview_service.preview_scraping(request.url)
+        
+        logger.info(f"Preview concluído: {resultado.total_protocolos} protocolos, {resultado.total_andamentos} andamentos")
+        return resultado
+        
+    except ValueError as e:
+        logger.warning(f"URL inválida no preview: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Erro no preview de scraping: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
+
+@router.post("/salvar-completo", response_model=SalvarProcessoCompletoResponse)
+async def salvar_processo_completo(request: SalvarProcessoCompletoRequest):
+    """
+    Salva processo completo com todos os dados relacionados.
+    
+    - **url**: URL original do processo
+    - **autuacao**: Dados da autuação
+    - **protocolos**: Lista de protocolos/documentos
+    - **andamentos**: Lista de andamentos
+    
+    Salva processo, documentos e andamentos em uma única transação.
+    """
+    try:
+        logger.info(f"Salvamento completo solicitado para processo: {request.autuacao.numero}")
+        
+        # Executar salvamento
+        resultado = scraping_preview_service.salvar_processo_completo(request)
+        
+        if resultado.sucesso:
+            logger.info(f"Processo salvo com sucesso: ID {resultado.processo_id}")
+            return resultado
+        else:
+            logger.error(f"Falha no salvamento: {resultado.mensagem}")
+            raise HTTPException(status_code=500, detail=resultado.mensagem)
+        
+    except Exception as e:
+        logger.error(f"Erro no salvamento completo: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}") 

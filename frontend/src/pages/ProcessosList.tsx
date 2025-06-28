@@ -17,7 +17,7 @@ import {
   CircularProgress,
   Skeleton,
 } from '@mui/material';
-import { Add, Search, FilterList } from '@mui/icons-material';
+import { Add, Search, FilterList, CloudDownload } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useProcessos } from '../hooks/useApi';
 import { ProcessoFilters } from '../types';
@@ -70,6 +70,10 @@ const ProcessosList: React.FC = () => {
     navigate('/processos/novo');
   };
 
+  const importarProcessoSEI = () => {
+    navigate('/processos/importar');
+  };
+
   // ============================================================================
   // DADOS PROCESSADOS
   // ============================================================================
@@ -85,9 +89,14 @@ const ProcessosList: React.FC = () => {
       <Box>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
           <Typography variant="h4">Processos</Typography>
-          <Button variant="contained" startIcon={<Add />} onClick={novoProcesso}>
-            Novo Processo
-          </Button>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button variant="outlined" startIcon={<Add />} onClick={novoProcesso}>
+              Novo Processo
+            </Button>
+            <Button variant="contained" startIcon={<CloudDownload />} onClick={importarProcessoSEI}>
+              Importar do SEI
+            </Button>
+          </Box>
         </Box>
 
         <Alert severity="info" sx={{ mb: 3 }}>
@@ -135,9 +144,14 @@ const ProcessosList: React.FC = () => {
       <Box>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
           <Typography variant="h4">Processos</Typography>
-          <Button variant="contained" startIcon={<Add />} onClick={novoProcesso}>
-            Novo Processo
-          </Button>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button variant="outlined" startIcon={<Add />} onClick={novoProcesso}>
+              Novo Processo
+            </Button>
+            <Button variant="contained" startIcon={<CloudDownload />} onClick={importarProcessoSEI}>
+              Importar do SEI
+            </Button>
+          </Box>
         </Box>
 
         <Alert severity="error" sx={{ mb: 3 }}>
@@ -156,14 +170,23 @@ const ProcessosList: React.FC = () => {
       {/* Header */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4">Processos</Typography>
-        <Button 
-          variant="contained" 
-          startIcon={<Add />} 
-          onClick={novoProcesso}
-          sx={{ minWidth: 150 }}
-        >
-          Novo Processo
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button 
+            variant="outlined" 
+            startIcon={<Add />} 
+            onClick={novoProcesso}
+          >
+            Novo Processo
+          </Button>
+          <Button 
+            variant="contained" 
+            startIcon={<CloudDownload />} 
+            onClick={importarProcessoSEI}
+            sx={{ minWidth: 150 }}
+          >
+            Importar do SEI
+          </Button>
+        </Box>
       </Box>
 
       {/* Status da API */}
