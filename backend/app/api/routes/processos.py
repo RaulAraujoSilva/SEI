@@ -1,18 +1,20 @@
 """
 Router para endpoints de Processos - Fase 6
 """
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, and_, case
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import datetime, date, timedelta
 
 from app.database.connection import get_db
 from app.models.processo import Processo, Documento, Andamento
 from app.models.api_schemas import (
     ProcessoCreate, ProcessoUpdate, ProcessoResponse, ProcessoStatistics,
-    PaginatedProcessos, ProcessoSearchParams, ResponseMessage
+    PaginatedProcessos, ProcessoSearchParams, ResponseMessage,
+    PaginatedAndamentos, AndamentoResponse
 )
+from app.models.schemas import AndamentoCreate
 
 router = APIRouter()
 
@@ -235,6 +237,99 @@ async def get_processo_statistics(db: Session = Depends(get_db)):
         media_documentos_por_processo=media_documentos_por_processo
     )
 
+# ===== ENDPOINTS DE VALIDAÇÃO =====
+
+@router.post("/validar-url", response_model=Dict[str, Any])
+async def validar_url_sei(
+    url_data: Dict[str, str],
+    db: Session = Depends(get_db)
+):
+    """Valida URL do processo SEI e extrai informações básicas"""
+    
+    url = url_data.get('url', '').strip()
+    
+    if not url:
+        return {
+            "valida": False,
+            "erro": "URL não fornecida"
+        }
+    
+    # Validação básica da URL
+    if 'sei.rj.gov.br' not in url.lower():
+        return {
+            "valida": False,
+            "erro": "URL deve ser do sistema SEI do Rio de Janeiro (sei.rj.gov.br)"
+        }
+    
+    # Padrões de URL aceitos
+    padroes_validos = [
+        'modulos/pesquisa/md_pesq_processo_exibir.php',
+        'controlador.php?acao=processo_consulta',
+        'controlador.php?acao=protocolo_visualizar'
+    ]
+    
+    url_valida = any(padrao in url for padrao in padroes_validos)
+    
+    if not url_valida:
+        return {
+            "valida": False,
+            "erro": "URL não parece ser de um processo SEI válido"
+        }
+    
+    try:
+        import re
+        from urllib.parse import urlparse, parse_qs
+        
+        # Tentar extrair informações da URL
+        dados_extraidos = {}
+        
+        # Verificar se já existe processo com esta URL
+        processo_existente = db.query(Processo).filter(
+            Processo.url_processo == url
+        ).first()
+        
+        if processo_existente:
+            return {
+                "valida": True,
+                "dados": {
+                    "ja_existe": True,
+                    "processo_id": processo_existente.id,
+                    "numero": processo_existente.numero
+                },
+                "aviso": "Este processo já está cadastrado no sistema"
+            }
+        
+        # Parse da URL para extrair parâmetros
+        parsed_url = urlparse(url)
+        query_params = parse_qs(parsed_url.query)
+        
+        # Tentar extrair ID do processo de diferentes tipos de URL
+        processo_id = None
+        if 'id_protocolo' in query_params:
+            processo_id = query_params['id_protocolo'][0]
+        elif 'id_procedimento' in query_params:
+            processo_id = query_params['id_procedimento'][0]
+        
+        if processo_id:
+            dados_extraidos['processo_id_sei'] = processo_id
+        
+        # Sugerir formato de número SEI baseado no ano atual
+        from datetime import datetime
+        ano_atual = datetime.now().year
+        dados_extraidos['numero_sugerido'] = f"SEI-000000/000000/{ano_atual}"
+        
+        return {
+            "valida": True,
+            "dados": dados_extraidos,
+            "message": "URL válida do SEI-RJ"
+        }
+        
+    except Exception as e:
+        return {
+            "valida": False,
+            "erro": f"Erro ao validar URL: {str(e)}"
+        }
+
 # ===== ENDPOINTS ESPECÍFICOS POR ID (DEVEM VIR APÓS OS ENDPOINTS NOMEADOS) =====
 
 @router.get("/{processo_id}", response_model=ProcessoResponse)
@@ -312,4 +407,126 @@ async def delete_processo(processo_id: int, db: Session = Depends(get_db)):
     db.delete(processo)
     db.commit()
     
-    return None 
+    return None
+
+# ===== ENDPOINTS DE ANDAMENTOS =====
+
+@router.get("/{processo_id}/andamentos", response_model=PaginatedAndamentos)
+async def list_andamentos_processo(
+    processo_id: int,
+    page: int = Query(1, ge=1, description="Número da página"),
+    size: int = Query(100, ge=1, le=1000, description="Tamanho da página"),
+    db: Session = Depends(get_db)
+):
+    """Lista andamentos de um processo específico"""
+    
+    # Verificar se processo existe
+    processo = db.query(Processo).filter(Processo.id == processo_id).first()
+    if not processo:
+        raise HTTPException(status_code=404, detail="Processo não encontrado")
+    
+    # Query base
+    query = db.query(Andamento).filter(Andamento.processo_id == processo_id)
+    
+    # Contar total
+    total = query.count()
+    
+    # Aplicar paginação
+    offset = (page - 1) * size
+    andamentos = (
+        query.order_by(desc(Andamento.data_hora))
+        .offset(offset)
+        .limit(size)
+        .all()
+    )
+    
+    # Converter para response
+    items = [AndamentoResponse.model_validate(andamento) for andamento in andamentos]
+    
+    pages = (total + size - 1) // size if size > 0 else 0
+    
+    return PaginatedAndamentos(
+        items=items,
+        total=total,
+        page=page,
+        size=size,
+        pages=pages
+    )
+
+@router.post("/{processo_id}/andamentos", response_model=AndamentoResponse, status_code=201)
+async def create_andamento(
+    processo_id: int,
+    andamento_data: AndamentoCreate,
+    db: Session = Depends(get_db)
+):
+    """Cria novo andamento para um processo"""
+    
+    # Verificar se processo existe
+    processo = db.query(Processo).filter(Processo.id == processo_id).first()
+    if not processo:
+        raise HTTPException(status_code=404, detail="Processo não encontrado")
+    
+    # Verificar se andamento já existe (evitar duplicatas)
+    existing = db.query(Andamento).filter(
+        Andamento.processo_id == processo_id,
+        Andamento.data_hora == andamento_data.data_hora,
+        Andamento.unidade == andamento_data.unidade,
+        Andamento.descricao == andamento_data.descricao
+    ).first()
+    
+    if existing:
+        raise HTTPException(
+            status_code=400,
+            detail="Andamento já existe com os mesmos dados"
+        )
+    
+    # Criar andamento
+    andamento = Andamento(
+        processo_id=processo_id,
+        **andamento_data.model_dump()
+    )
+    
+    db.add(andamento)
+    db.commit()
+    db.refresh(andamento)
+    
+    return AndamentoResponse.model_validate(andamento)
+
+@router.get("/{processo_id}/andamentos/{andamento_id}", response_model=AndamentoResponse)
+async def get_andamento(
+    processo_id: int,
+    andamento_id: int,
+    db: Session = Depends(get_db)
+):
+    """Busca andamento específico de um processo"""
+    
+    andamento = db.query(Andamento).filter(
+        Andamento.id == andamento_id,
+        Andamento.processo_id == processo_id
+    ).first()
+    
+    if not andamento:
+        raise HTTPException(status_code=404, detail="Andamento não encontrado")
+    
+    return AndamentoResponse.model_validate(andamento)
+
+@router.delete("/{processo_id}/andamentos/{andamento_id}", status_code=204)
+async def delete_andamento(
+    processo_id: int,
+    andamento_id: int,
+    db: Session = Depends(get_db)
+):
+    """Remove andamento específico"""
+    
+    andamento = db.query(Andamento).filter(
+        Andamento.id == andamento_id,
+        Andamento.processo_id == processo_id
+    ).first()
+    
+    if not andamento:
+        raise HTTPException(status_code=404, detail="Andamento não encontrado")
+    
+    db.delete(andamento)
+    db.commit()
+    
+    return Response(status_code=204) 

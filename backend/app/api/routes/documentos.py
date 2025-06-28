@@ -1,7 +1,7 @@
 """
 Router para endpoints de Documentos - Fase 6
 """
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile, File, Form
 from fastapi.responses import RedirectResponse, FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, and_, or_
@@ -364,4 +364,111 @@ async def get_analysis_history(documento_id: int, db: Session = Depends(get_db))
     return {
         "documento_id": documento_id,
         "history": sorted(history, key=lambda x: x["timestamp"], reverse=True)
-    } 
+    }
+
+# ===== ENDPOINTS DE UPLOAD =====
+
+@router.post("/upload", response_model=DocumentoResponse, status_code=201)
+async def upload_documento(
+    file: UploadFile = File(...),
+    processo_id: int = Form(...),
+    tipo: str = Form(...),
+    descricao: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """Upload de documento para um processo"""
+    
+    # Verificar se processo existe
+    processo = db.query(Processo).filter(Processo.id == processo_id).first()
+    if not processo:
+        raise HTTPException(status_code=404, detail="Processo não encontrado")
+    
+    # Validar tipo de arquivo
+    allowed_types = {
+        'application/pdf': '.pdf',
+        'application/msword': '.doc',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+        'application/vnd.ms-excel': '.xls',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+        'text/plain': '.txt',
+        'image/jpeg': '.jpg',
+        'image/png': '.png'
+    }
+    
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Tipo de arquivo não permitido. Tipos aceitos: {list(allowed_types.values())}"
+        )
+    
+    # Verificar tamanho (máximo 100MB)
+    max_size = 100 * 1024 * 1024  # 100MB
+    if file.size and file.size > max_size:
+        raise HTTPException(
+            status_code=400,
+            detail="Arquivo muito grande. Tamanho máximo: 100MB"
+        )
+    
+    try:
+        import os
+        import hashlib
+        from pathlib import Path
+        from datetime import datetime
+        
+        # Criar diretório de uploads se não existir
+        upload_dir = Path("uploads") / "documentos" / str(processo_id)
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Gerar nome único para o arquivo
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        file_extension = allowed_types[file.content_type]
+        filename = f"{timestamp}_{file.filename}"
+        file_path = upload_dir / filename
+        
+        # Salvar arquivo
+        content = await file.read()
+        with open(file_path, "wb") as f:
+            f.write(content)
+        
+        # Calcular hash do arquivo
+        file_hash = hashlib.sha256(content).hexdigest()
+        
+        # Gerar número de documento baseado no timestamp
+        numero_documento = f"DOC-{processo_id}-{timestamp}"
+        
+        # Criar registro do documento no banco
+        documento = Documento(
+            processo_id=processo_id,
+            numero_documento=numero_documento,
+            tipo=tipo,
+            data_documento=datetime.now().date(),
+            data_inclusao=datetime.now().date(),
+            unidade="Upload Manual",
+            arquivo_path=str(file_path),
+            downloaded=True,  # Já foi "baixado" (upload)
+            detalhamento_status='pendente'
+        )
+        
+        db.add(documento)
+        db.commit()
+        db.refresh(documento)
+        
+        # Converter para response incluindo informações do arquivo
+        doc_dict = documento.__dict__.copy()
+        doc_dict.update({
+            'tamanho_arquivo': len(content),
+            'hash_arquivo': file_hash,
+            'caminho_arquivo': str(file_path)
+        })
+        
+        return DocumentoResponse.model_validate(doc_dict)
+        
+    except Exception as e:
+        # Se houve erro, tentar remover arquivo se foi criado
+        if 'file_path' in locals() and os.path.exists(file_path):
+            os.remove(file_path)
+        
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao fazer upload do documento: {str(e)}"
+        ) 

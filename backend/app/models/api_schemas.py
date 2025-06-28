@@ -142,10 +142,9 @@ class AndamentoResponse(BaseModel):
     """Schema de resposta para andamento"""
     id: int
     processo_id: int
-    data_andamento: date
-    descricao: str
+    data_hora: datetime
+    descricao: Optional[str] = None
     unidade: Optional[str] = None
-    usuario: Optional[str] = None
     created_at: datetime
     
     model_config = ConfigDict(from_attributes=True)

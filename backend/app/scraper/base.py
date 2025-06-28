@@ -2,6 +2,7 @@
 Scraper base para processos SEI
 """
 import asyncio
+import re
 import aiohttp
 from typing import Optional
 from datetime import datetime
@@ -115,34 +116,37 @@ class SEIScraper:
     
     def extract_documentos(self, soup: BeautifulSoup) -> list:
         """Extrai lista de documentos"""
-        # Procura por div específica ou tabelas que não são de autuação
-        documentos_div = soup.find('div', id='divDocumentos')
-        if documentos_div:
-            return SEIParser.parse_documentos_table(documentos_div)
+        # Busca pela tabela específica de cabeçalho (lista de protocolos)
+        documentos_table = soup.find('table', id='tblCabecalho')
+        if documentos_table:
+            return SEIParser.parse_documentos_table(documentos_table)
         
         # Fallback: procura por tabelas que contêm dados de documentos
         tables = soup.find_all('table', class_='infraTable')
         for table in tables:
-            # Verifica se a tabela contém dados de documentos (não autuação)
-            first_row = table.find('tr')
-            if first_row and not first_row.find('td', class_='infraTdLabel'):
+            # Verifica se a tabela contém links numéricos (documentos)
+            links = table.find_all('a')
+            numeric_links = [link for link in links if re.match(r'^\d+$', link.get_text(strip=True))]
+            if len(numeric_links) > 10:  # Tabela com muitos documentos
                 return SEIParser.parse_documentos_table(table)
         
         return []
     
     def extract_andamentos(self, soup: BeautifulSoup) -> list:
         """Extrai histórico de andamentos"""
-        # Procura por div específica ou última tabela válida
-        andamentos_div = soup.find('div', id='divAndamentos')
-        if andamentos_div:
-            return SEIParser.parse_andamentos_table(andamentos_div)
+        # Busca pela tabela específica de histórico
+        andamentos_table = soup.find('table', id='tblHistorico')
+        if andamentos_table:
+            return SEIParser.parse_andamentos_table(andamentos_table)
         
-        # Fallback: procura por tabelas que contêm dados de andamentos
+        # Fallback: procura por tabelas que contêm padrões de data/hora
         tables = soup.find_all('table', class_='infraTable')
-        if len(tables) >= 3:  # Autuação, Documentos, Andamentos
-            return SEIParser.parse_andamentos_table(tables[-1])
-        elif len(tables) == 2:  # Autuação, Andamentos (sem documentos)
-            return SEIParser.parse_andamentos_table(tables[-1])
+        for table in tables:
+            # Verifica se a tabela contém muitos padrões de data/hora (andamentos)
+            text = table.get_text()
+            datetime_matches = re.findall(r'\d{2}/\d{2}/\d{4} \d{2}:\d{2}', text)
+            if len(datetime_matches) > 10:  # Tabela com muitos andamentos
+                return SEIParser.parse_andamentos_table(table)
         
         return []
     

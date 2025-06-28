@@ -30,7 +30,7 @@ class ProcessoPersistenceService:
         self.db = db_session
         self.change_service = ChangeDetectionService()
     
-    async def save_processo_data(self, processo_data: ProcessoData) -> ProcessoResult:
+    async def save_processo_data(self, processo_data: ProcessoData, url: str = "") -> ProcessoResult:
         """
         Salva dados do processo de forma incremental
         
@@ -46,10 +46,10 @@ class ProcessoPersistenceService:
             
             if existing_processo:
                 # Atualiza processo existente
-                return await self._update_existing_processo(existing_processo, processo_data)
+                return await self._update_existing_processo(existing_processo, processo_data, url)
             else:
                 # Cria novo processo
-                return await self._create_new_processo(processo_data)
+                return await self._create_new_processo(processo_data, url)
                 
         except IntegrityError as e:
             logger.error(f"Erro de integridade ao salvar processo: {e}")
@@ -206,10 +206,10 @@ class ProcessoPersistenceService:
             Processo existente ou None
         """
         return self.db.query(Processo).filter(
-            Processo.numero_sei == numero_sei
+            Processo.numero == numero_sei  # Corrigido: numero_sei -> numero
         ).first()
     
-    async def _create_new_processo(self, processo_data: ProcessoData) -> ProcessoResult:
+    async def _create_new_processo(self, processo_data: ProcessoData, url: str = "") -> ProcessoResult:
         """
         Cria novo processo
         
@@ -219,13 +219,17 @@ class ProcessoPersistenceService:
         Returns:
             Resultado da operação
         """
-        # Cria processo
+        # Cria processo com campos corretos do novo modelo
         processo = Processo(
-            numero_sei=processo_data.autuacao.numero_sei,
-            url="",  # URL será definida posteriormente
+            numero=processo_data.autuacao.numero_sei,  # numero_sei -> numero
             tipo=processo_data.autuacao.tipo,
-            data_geracao=processo_data.autuacao.data_geracao,
-            interessados=processo_data.autuacao.interessados
+            assunto=f"Processo {processo_data.autuacao.tipo}",  # Gerar assunto básico
+            interessado=processo_data.autuacao.interessados,  # interessados -> interessado
+            situacao='Em tramitação',  # Situação padrão
+            data_autuacao=processo_data.autuacao.data_geracao,  # data_geracao -> data_autuacao
+            orgao_autuador='Não informado',  # Órgão padrão
+            url_processo=url,  # URL do processo SEI
+            hash_conteudo=f"hash_{processo_data.autuacao.numero_sei}_{datetime.now().timestamp()}"
         )
         
         self.db.add(processo)
@@ -256,7 +260,7 @@ class ProcessoPersistenceService:
             changes_detected=total_changes
         )
     
-    async def _update_existing_processo(self, processo: Processo, processo_data: ProcessoData) -> ProcessoResult:
+    async def _update_existing_processo(self, processo: Processo, processo_data: ProcessoData, url: str = "") -> ProcessoResult:
         """
         Atualiza processo existente
         
@@ -274,8 +278,8 @@ class ProcessoPersistenceService:
         if processo.tipo != processo_data.autuacao.tipo:
             processo.tipo = processo_data.autuacao.tipo
             updated = True
-        if processo.interessados != processo_data.autuacao.interessados:
-            processo.interessados = processo_data.autuacao.interessados
+        if processo.interessado != processo_data.autuacao.interessados:  # interessados -> interessado
+            processo.interessado = processo_data.autuacao.interessados
             updated = True
         
         if updated:
